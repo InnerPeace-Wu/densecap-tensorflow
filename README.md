@@ -1,2 +1,8 @@
 # densecap-tensorflow
-ongoing project...
+
+## Dependencies
+
+
+```shell
+pip install -r requirements.txt
+```
