@@ -73,7 +73,7 @@ def read_all_regions_test():
     '''it gonna kill my computer'''
     from tqdm import tqdm
     path = '/home/joe/git/visual_genome/1.2/train_gt_regions/'
-    split_path = '/home/joe/git/densecap/info/desecap_splits.json'
+    split_path = '/home/joe/git/densecap/info/densecap_splits.json'
     with open(split_path, 'r') as fid:
         img_index = json.load(fid)['train']
     all_regions = {}
