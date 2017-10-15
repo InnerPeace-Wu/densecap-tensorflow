@@ -1,0 +1,26 @@
+split image number: 77398 for split name: train
+start loading image meta data json files...
+0.316329 seconds for loading
+train: 100%|███████████████████████████| 108077/108077 [03:05<00:00, 581.84it/s]
+processing train set with time: 185.75 seconds
+there are 272 invalid bboxes out of 3684063
+there are 3 empty phrases after triming
+Found 56945 unique word tokens.
+Using vocabulary size 10000.
+The least frequent word in our vocabulary is 'ruff' and appeared 14 times.
+Dumping vocabulary to file: /home/joe/git/visual_genome/1.2/vocabulary.txt
+Done.
+split image number: 5000 for split name: val
+start loading image meta data json files...
+0.273385 seconds for loading
+val: 100%|████████████████████████████| 108077/108077 [00:20<00:00, 5401.88it/s]
+processing val set with time: 20.01 seconds
+there are 14 invalid bboxes out of 237362
+there are 0 empty phrases after triming
+split image number: 5000 for split name: test
+start loading image meta data json files...
+0.273840 seconds for loading
+test: 100%|███████████████████████████| 108077/108077 [00:20<00:00, 5225.84it/s]
+processing test set with time: 20.68 seconds
+there are 17 invalid bboxes out of 238069
+there are 0 empty phrases after triming

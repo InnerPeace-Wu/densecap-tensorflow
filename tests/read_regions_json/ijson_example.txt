@@ -1,6 +1,5 @@
 ('', u'start_array', None)
 ('item', u'start_map', None)
-yes
 ('item', u'map_key', u'regions')
 (u'item.regions', u'start_array', None)
 (u'item.regions.item', u'start_map', None)
