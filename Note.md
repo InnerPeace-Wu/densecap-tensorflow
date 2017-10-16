@@ -28,3 +28,58 @@
 }
            
 ```
+
+### roi_db
+
+* **SAVE LIMIT_RAM VISION AS PKL FILE.**
+
+* LIMIT_RAM example: 1.pkl
+
+```json
+{
+'gt_classes': array([1382, 1383, ..., 4090, 4091], dtype=int32), 
+'flipped': False, 
+'gt_phrases': {1536: [3, 10, 20, 8, 6, 2, 9], 3584: [36, 38, 29, 17, 2, 37], ...},
+'boxes': array([[421,  57, 503, 196],
+                [194, 372, 376, 481],
+                [241, 491, 302, 521],
+                ...], dtype=uint16),
+'seg_areas': array([  11620.,   20130.,    1922., ...], dtype=float32), 
+'gt_overlaps': <262x2 sparse matrix of type '<type 'numpy.float32'>'
+               with 262 stored elements in Compressed Sparse Row format>}
+}
+```
+
+* UNLIMIT_RAM example: pre_gt_roidb.pkl
+
+```json
+{
+'gt_classes': array([1382, 1383, ..., 4090, 4091], dtype=int32), 
+'flipped': False, 
+'boxes': array([[421,  57, 503, 196],
+                [194, 372, 376, 481],
+                [241, 491, 302, 521],
+                ...], dtype=uint16),
+'seg_areas': array([  11620.,   20130.,    1922., ...], dtype=float32), 
+'gt_overlaps': <262x2 sparse matrix of type '<type 'numpy.float32'>'
+               with 262 stored elements in Compressed Sparse Row format>}
+}
+```
+
+* UNLIMIT_RAM exampl: 
+
+```json
+{1536: [3, 10, 20, 8, 6, 2, 9], 3584: [36, 38, 29, 17, 2, 37], ...}
+```
+
+## LIMIT RAM
+
+* Return `roidb` is a path to the saved pkls.
+* TRAIN.USE_FLIPPED = False
+**NEEDS TO:**  
+1. add USE_FLIPPED to be True?
+2. `rdl_roidb.prepare_roidb` method to process data. 
+3. filter out the invalid roi before
+
+* add self.image_index to visual_genome class for filterd indexes.
+  

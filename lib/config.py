@@ -30,6 +30,19 @@ __C = edict()
 cfg = __C
 
 #
+# Training options
+#
+
+__C.TRAIN = edict()
+
+# Training using proposal
+__C.TRAIN.PROPOSAL_METHOD = 'gt'
+
+# Use horizontally-flipped images during training?
+# For now, it's not used in LIMIT_RAM version
+__C.TRAIN.USE_FLIPPED = True
+
+#
 # MISC
 #
 
@@ -37,7 +50,8 @@ cfg = __C
 __C.ROOT_DIR = osp.abspath(pjoin(osp.dirname(__file__), '..'))
 
 # Data directory
-__C.DATA_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'data'))
+# __C.DATA_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'data'))
+__C.DATA_DIR = '/home/joe/git/visual_genome'
 
 # Log directory
 __C.LOG_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'logs'))
@@ -48,12 +62,18 @@ __C.CACHE_DIR = __C.DATA_DIR
 # Dataset splits directory
 __C.SPLIT_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'info'))
 
+# Place outputs under an experiment directory
+__C.EXP_DIR = 'default'
+
+# Limited memory which is less than 16G and unable to read the whole
+# region description JSON file
+__C.LIMIT_RAM = True
+
 
 #
 # Functions
 #
 
-# TODO: Need to change
 def get_output_dir(imdb, weights_filename):
     """Return the directory where experimental artifacts are placed.
     If the directory does not exist, it is created.

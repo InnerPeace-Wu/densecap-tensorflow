@@ -9,6 +9,8 @@
 # Written by Ross Girshick
 # --------------------------------------------------------
 
+import sys
+sys.path.append("..")
 import os
 import os.path as osp
 import PIL
