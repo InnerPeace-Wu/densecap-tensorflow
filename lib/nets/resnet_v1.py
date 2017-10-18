@@ -114,7 +114,7 @@ class resnetv1(Network):
         self._layers['head'] = net_conv
 
         return net_conv
-
+    # not used.
     def _head_to_tail(self, pool5, is_training, reuse=None):
         with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
             fc7, _ = resnet_v1.resnet_v1(pool5,
