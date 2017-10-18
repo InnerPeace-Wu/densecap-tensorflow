@@ -1,0 +1,8 @@
++ echo Logging output to logs/test.txt.2017-10-18_15-33-56
+Logging output to logs/test.txt.2017-10-18_15-33-56
++ python ./nonsense.py
+hello world
+
+real	0m0.011s
+user	0m0.012s
+sys	0m0.000s

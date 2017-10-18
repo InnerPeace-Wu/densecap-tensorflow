@@ -3,6 +3,9 @@
 # Written by InnerPeace
 # This file is adapted from Linjie's work
 # ----------------------------------------------
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 """
 Preprocessing of visual genome dataset, including vocabularity generation,
@@ -12,26 +15,43 @@ removing invalid bboxes and phrases, tokenization, and result saving
 import itertools
 import os
 import string
-import sys
-
-sys.path.append('..')
+# import sys
+# sys.path.append('..')
 import json
 import time
 import numpy as np
+from six.moves import xrange
 from collections import Counter
-from config import cfg
+from lib.config import cfg
+from info.read_splits import read_splits
 import os.path as osp
 from tqdm import tqdm
 
 VG_VERSION = '1.2'
 # NOTE: one need to change the path accordingly
 VG_PATH = '/home/joe/git/VG_raw_data'
-VG_IMAGE_ROOT = '%s/images' % VG_PATH
-VG_REGION_PATH = '%s/%s/regions' % (VG_PATH, VG_VERSION)
+# TODO: delete testing option
+# VG_IMAGE_ROOT = '%s/images' % VG_PATH
+VG_IMAGE_ROOT = '%s/images_test' % VG_PATH
+
+# TODO: delete testing option
+cfg.LIMIT_RAM = False
+if cfg.LIMIT_RAM:
+    # regions directory path
+    # VG_REGION_PATH = '%s/%s/regions' % (VG_PATH, VG_VERSION)
+    VG_REGION_PATH = '%s/%s/regions_test' % (VG_PATH, VG_VERSION)
+else:
+    # read whole regions with a json file
+    # VG_REGION_PATH = '%s/%s/region_descriptions.json' % (VG_PATH, VG_VERSION)
+    VG_REGION_PATH = '%s/%s/region_descriptions_test.json' % (VG_PATH, VG_VERSION)
+
 VG_METADATA_PATH = '%s/%s/image_data.json' % (VG_PATH, VG_VERSION)
 vocabulary_size = 10000  # 10497#from dense caption paper
 HAS_VOCAB = False
-OUTPUT_DIR = '/home/joe/git/visual_genome/%s' % VG_VERSION
+# TODO: delete testing option
+OUTPUT_DIR = '/home/joe/git/visual_genome_test/%s' % VG_VERSION
+# In default, we read from json file
+READ_SPLITS_FROM_TXT = False
 SPLITS_JSON = osp.join(cfg.ROOT_DIR, 'info/densecap_splits.json')
 
 # UNK_IDENTIFIER is the word used to identify unknown words
@@ -41,30 +61,35 @@ MAX_WORDS = 10
 
 
 class VGDataProcessor:
-    def __init__(self, split_name, image_data, vocab=None,
+    def __init__(self, split_name, image_data, regions_all=None, vocab=None,
                  split_ids=[], max_words=MAX_WORDS):
         self.max_words = max_words
+        self.images = {}
         phrases_all = []
         num_invalid_bbox = 0
         num_bbox = 0
         num_empty_phrase = 0
-
-        self.save_path = OUTPUT_DIR + '/%s_gt_regions' % split_name
-        if not os.path.exists(self.save_path):
-            os.makedirs(self.save_path)
+        if cfg.LIMIT_RAM:
+            self.save_path = OUTPUT_DIR + '/%s_gt_regions' % split_name
+            if not os.path.exists(self.save_path):
+                os.makedirs(self.save_path)
 
         tic = time.time()
         for i in tqdm(xrange(len(image_data)), desc='%s' % split_name):
             image_info = image_data[i]
+            # NOTE: for VG_1.2 and VG_1.0 the key in image_info about id is different.
             im_id = image_info['image_id']
 
             if not im_id in split_ids:
                 continue
 
             # open the region description file
-            with open(VG_REGION_PATH + '/%s.json' % im_id, 'r') as f:
-                item = json.load(f)
-            if item['id'] != image_info['image_id']:
+            if cfg.LIMIT_RAM:
+                with open(VG_REGION_PATH + '/%s.json' % im_id, 'r') as f:
+                    item = json.load(f)
+            else:
+                item = regions_all[i]
+            if item['id'] != im_id:
                 print('region and image metadata inconsistent with regions id: %s, image id: %s' %
                       (item['id'], image_info['image_id']))
                 exit()
@@ -95,8 +120,11 @@ class VGDataProcessor:
             im_path = '%s/%d.jpg' % (VG_IMAGE_ROOT, im_id)
             Dict = {'path': im_path, 'regions': regions_filt, 'id': im_id,
                    'height': image_info['height'], 'width': image_info['width']}
-            with open(self.save_path + '/%s.json' % im_id, 'wb') as f:
-                json.dump(Dict, f)
+            if cfg.LIMIT_RAM:
+                with open(self.save_path + '/%s.json' % im_id, 'wb') as f:
+                    json.dump(Dict, f)
+            else:
+                self.images[item['id']] = Dict
         toc = time.time()
         print('processing %s set with time: %.2f seconds' % (split_name, toc - tic))
         print("there are %d invalid bboxes out of %d" % (num_invalid_bbox, num_bbox))
@@ -135,24 +163,32 @@ SPLITS_PATTERN = cfg.ROOT_DIR + '/info/%s.txt'
 
 def process_dataset(split_name, vocab=None):
     # 1. read split ids from separate txt files
-
-    # split_image_ids = []
-    # with open(SPLITS_PATTERN % split_name, 'r') as split_file:
-    #     for line in split_file.readlines():
-    #         line_id = int(line.strip())
-    #         split_image_ids.append(line_id)
+    if READ_SPLITS_FROM_TXT:
+        read_splits()
+        split_image_ids = []
+        with open(SPLITS_PATTERN % split_name, 'r') as split_file:
+            for line in split_file.readlines():
+                line_id = int(line.strip())
+                split_image_ids.append(line_id)
 
     # 2. read split ids from json file
-    with open(SPLITS_JSON, 'r') as f:
-        split_image_ids = json.load(f)[split_name]
+    else:
+        # with open(SPLITS_JSON, 'r') as f:
+        #     split_image_ids = json.load(f)[split_name]
+        # TODO: delete testing option
+        split_image_ids = [1, 2]
     print('split image number: %d for split name: %s' % (len(split_image_ids), split_name))
 
-    print('start loading image meta data json files...')
+    print('start loading json files...')
     t1 = time.time()
+    if not cfg.LIMIT_RAM:
+        regions_all = json.load(open(VG_REGION_PATH))
+    else:
+        regions_all = None
     image_data = json.load(open(VG_METADATA_PATH))
     t2 = time.time()
     print('%f seconds for loading' % (t2 - t1))
-    processor = VGDataProcessor(split_name, image_data,
+    processor = VGDataProcessor(split_name, image_data, regions_all,
                                 split_ids=split_image_ids, vocab=vocab)
 
     if not os.path.exists(OUTPUT_DIR):
@@ -162,8 +198,9 @@ def process_dataset(split_name, vocab=None):
         processor.dump_vocabulary(vocab_out_path)
 
     # dump image region dict
-    # with open(OUTPUT_DIR + '/%s_gt_regions.json' % split_name, 'w') as f:
-    #     json.dump(processor.images, f)
+    if not cfg.LIMIT_RAM:
+        with open(OUTPUT_DIR + '/%s_gt_regions.json' % split_name, 'w') as f:
+            json.dump(processor.images, f)
 
     return processor.vocabulary_inverted
 
@@ -176,11 +213,13 @@ def process_vg():
         with open(vocab_path, 'r') as f:
             vocab = [line.strip() for line in f]
 
-    # datasets = ['pre']
-    datasets = ['train', 'val', 'test']
+    # TODO: delete testing option
+    # datasets = ['train', 'val', 'test']
+    datasets = ['pre']
     for split_name in datasets:
         vocab = process_dataset(split_name, vocab=vocab)
 
 
 if __name__ == "__main__":
+
     process_vg()

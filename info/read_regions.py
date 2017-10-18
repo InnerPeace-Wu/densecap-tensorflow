@@ -2,6 +2,9 @@
 # DenseCap
 # Written by InnerPeace
 # ----------------------------------------------
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 """read large region description json files"""
 
@@ -12,8 +15,11 @@ import os
 
 VG_VERSION = '1.2'
 VG_PATH = '/home/joe/git/VG_raw_data'
-VG_REGION_PATH = '%s/%s/region_descriptions.json' % (VG_PATH, VG_VERSION)
-REGION_JSON = '%s/%s/regions_desc' % (VG_PATH, VG_VERSION)
+# TODO: delete testing option
+# VG_REGION_PATH = '%s/%s/region_descriptions.json' % (VG_PATH, VG_VERSION)
+VG_REGION_PATH = '%s/%s/region_descriptions_test.json' % (VG_PATH, VG_VERSION)
+# REGION_JSON = '%s/%s/regions' % (VG_PATH, VG_VERSION)
+REGION_JSON = '%s/%s/regions_test' % (VG_PATH, VG_VERSION)
 
 
 def read_regions():
@@ -32,7 +38,7 @@ def read_regions():
             Dic = {}
             regions = []
             last_value = None
-        elif last_value == 'id':
+        elif last_value == 'id' and value:
             count += 1
             Dic['regions'] = regions
             Dic['id'] = value

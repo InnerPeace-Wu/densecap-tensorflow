@@ -3,16 +3,19 @@
 # Written by InnerPeace
 # This file is adapted from Ross Girshick's work
 # --------------------------------------------------------
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 """functions for LIMIT_RAM version"""
 
-import sys
-sys.path.append("..")
+# import sys
+# sys.path.append("..")
 
 import numpy as np
 from lib.config import cfg
 
-# not used
+
 def pre_roidb(roidb):
     """Enrich the imdb's roidb by adding some derived quantities that
     are useful for training. This function precomputes the maximum
@@ -35,6 +38,7 @@ def pre_roidb(roidb):
     # max overlap > 0 => class should not be zero (must be a fg class)
     # nonzero_inds = np.where(max_overlaps > 0)[0]
     # assert all(max_classes[nonzero_inds] != 0)
+    return roidb
 
 
 def is_valid_limitRam(entry):
@@ -50,3 +54,24 @@ def is_valid_limitRam(entry):
     # image is only valid if such boxes exist
     valid = len(fg_inds) > 0 or len(bg_inds) > 0
     return valid
+
+
+def flip_image(roidb):
+    """flip image and change the name for reading later"""
+
+    boxes = roidb['boxes'].copy()
+    oldx1 = boxes[:, 0].copy()
+    oldx2 = boxes[:, 2].copy()
+    boxes[:, 0] = roidb['width'] - oldx2 - 1
+    boxes[:, 2] = roidb['width'] - oldx1 - 1
+    assert (boxes[:, 2] >= boxes[:, 0]).all()
+    entry = {'boxes': boxes,
+             'gt_overlaps': roidb['gt_overlaps'],
+             'gt_classes': roidb['gt_classes'],
+             'flipped': True,
+             'gt_phrases': roidb['gt_phrases'],
+             'width': roidb['width'],
+             'height': roidb['height'],
+             'image_id': '%s_flip' % roidb['image_id']}
+
+    return entry

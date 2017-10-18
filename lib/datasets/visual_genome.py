@@ -3,20 +3,27 @@
 # Written by InnerPeace
 # This file is adapted from Linjie's work
 # --------------------------------------------------------
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import sys
+sys.path.append("..")
 
 import os
 import numpy as np
 import scipy.sparse
-import cPickle
 import uuid
 import json
-import logging
+# import logging
+import six
 from tqdm import tqdm
+from six.moves import xrange, cPickle
 from os.path import join as pjoin
 
-from imdb import imdb
+from lib.datasets.imdb import imdb
 from lib.config import cfg
-# from lib.limit_ram.utils import pre_roidb
+from lib.limit_ram.utils import pre_roidb, flip_image
 from lib.limit_ram.utils import is_valid_limitRam
 
 # import xml.etree.ElementTree as ET
@@ -28,7 +35,9 @@ from lib.limit_ram.utils import is_valid_limitRam
 DEBUG = False
 USE_CACHE = True
 UNK_IDENTIFIER = '<unk>'
-DEFAULT_PATH = '/home/joe/git/visual_genome'
+# TODO: delete testing option
+# DEFAULT_PATH = '/home/joe/git/visual_genome'
+DEFAULT_PATH = '/home/joe/git/visual_genome_test'
 
 
 class visual_genome(imdb):
@@ -53,13 +62,13 @@ class visual_genome(imdb):
             self._gt_regions = json.load(open(self.region_imset_path))
 
         self._image_ext = '.jpg'
-        logging.info('data_path: %s' % self._data_path)
+        print('data_path: %s' % self._data_path)
 
         self._classes = ('__background__', '__foreground__')
 
-        # TODO: change regoin loads procedure
-
-        self._image_index = self._load_image_set_index()
+        # self._image_index = self._load_image_set_index()
+        # TODO: delete testing option
+        self._image_index = [1, 2]
         # Default to roidb handler
         self._roidb_handler = self.gt_roidb
         self._salt = str(uuid.uuid4())
@@ -113,7 +122,7 @@ class visual_genome(imdb):
         return image_index
 
     def get_gt_regions(self):
-        return [v for k, v in self._gt_regions.iteritems()]
+        return [v for k, v in six.iteritems(self._gt_regions)]
 
     def get_gt_regions_index(self, index):
         return self._gt_regions[index]
@@ -140,12 +149,12 @@ class visual_genome(imdb):
         if os.path.exists(cache_file) and USE_CACHE:
             with open(cache_file, 'rb') as fid:
                 roidb = cPickle.load(fid)
-            logging.info('{} gt roidb loaded from {}'.format(self._image_set, cache_file))
+            print('{} gt roidb loaded from {}'.format(self._image_set, cache_file))
             return roidb
 
         gt_roidb = [self._load_vg_annotation(index) for index in self._image_index]
         gt_phrases = {}
-        for k, v in self._gt_regions.iteritems():
+        for k, v in six.iteritems(self._gt_regions):
             for reg in v['regions']:
                 gt_phrases[reg['region_id']] = self._line_to_stream(reg['phrase_tokens'])
 
@@ -153,22 +162,22 @@ class visual_genome(imdb):
                     # CHECK consistency
                     for wi, w in zip(gt_phrases[reg['region_id']], reg['phrase_tokens']):
                         vocab_w = self._vocabulary_inverted[wi - 1]
-                        print vocab_w, w
+                        print(vocab_w, w)
                         assert (vocab_w == UNK_IDENTIFIER or vocab_w == w)
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
         with open(cache_file_phrases, 'wb') as fid:
             cPickle.dump(gt_phrases, fid, cPickle.HIGHEST_PROTOCOL)
-        logging.info('wrote gt roidb to {}'.format(cache_file))
-        logging.info('wrote gt phrases to {}'.format(cache_file_phrases))
+        print('wrote gt roidb to {}'.format(cache_file))
+        print('wrote gt phrases to {}'.format(cache_file_phrases))
         return gt_roidb
 
     def gt_roidb_limit_ram(self):
         # cache_file_phrases = pjoin(self._cache_path, self._image_set + '_gt_phrases.pkl')
         roidb_cache_path = pjoin(self._cache_path, self._image_set + '_gt_roidb')
         if os.path.exists(roidb_cache_path) and USE_CACHE:
-            logging.info("{} gt roidb could be loaded from {}".format(self._image_set,
-                                                                      roidb_cache_path))
+            print("{} gt roidb could be loaded from {}".format(self._image_set,
+                                                               roidb_cache_path))
             with open(roidb_cache_path + '/image_index.json', 'r') as fi:
                 self._image_index = json.load(fi)
 
@@ -178,15 +187,33 @@ class visual_genome(imdb):
             os.makedirs(roidb_cache_path)
 
         image_index = []
+        exclude_index = []
         for i in tqdm(xrange(len(self._image_index)), desc="%s" % self._image_set):
             idx = self._image_index[i]
             dictionary = self._load_vg_annotation(idx)
-            if is_valid_limitRam(dictionary):
-                # idx is INT
+            if is_valid_limitRam(pre_roidb(dictionary)):
+                if not isinstance(idx, six.string_types):
+                    idx = str(idx)
                 image_index.append(idx)
                 with open(roidb_cache_path + '/%s.pkl' % idx, 'wb') as f:
                     cPickle.dump(dictionary, f, cPickle.HIGHEST_PROTOCOL)
+            else:
+                exclude_index.append(idx)
 
+            ## check for flip
+            if cfg.TRAIN.USE_FLIPPED:
+                flip_dict = flip_image(dictionary)
+                flip_id = flip_dict['image_id']
+                if is_valid_limitRam(pre_roidb(flip_dict)):
+                    image_index.append(flip_id)
+                    with open(roidb_cache_path + '/%s.pkl' % flip_id, 'wb') as f:
+                        cPickle.dump(flip_dict, f, cPickle.HIGHEST_PROTOCOL)
+                else:
+                    exclude_index.append(flip_id)
+
+        print("filter out {} images.".format(len(exclude_index)))
+        print("remaining {} iamges for {} set".format(len(image_index),
+                                                      self._image_set))
         self._image_index = image_index
         with open(roidb_cache_path + '/image_index.json', 'w') as fi:
             json.dump(image_index, fi)
@@ -205,7 +232,7 @@ class visual_genome(imdb):
 
     def _load_rpn_roidb(self, gt_roidb):
         filename = self.config['rpn_file']
-        print 'loading {}'.format(filename)
+        print('loading {}'.format(filename))
         assert os.path.exists(filename), \
             'rpn data not found at: {}'.format(filename)
         with open(filename, 'rb') as f:
@@ -229,8 +256,7 @@ class visual_genome(imdb):
         Load image and bounding boxes info from XML file in the PASCAL VOC
         format.
         """
-        # TODO: change for python 3.X, for now it's compatible with python 2.X
-        if not isinstance(index, basestring):
+        if not isinstance(index, six.string_types):
             index = str(index)
         if not cfg.LIMIT_RAM:
             regions = self._gt_regions[index]['regions']
@@ -267,7 +293,7 @@ class visual_genome(imdb):
                     # CHECK consistency
                     for wi, w in zip(gt_phrases[reg['region_id']], reg['phrase_tokens']):
                         vocab_w = self._vocabulary_inverted[wi - 1]
-                        print vocab_w, w
+                        print(vocab_w, w)
                         assert (vocab_w == UNK_IDENTIFIER or vocab_w == w)
 
         sparse_overlaps = scipy.sparse.csr_matrix(overlaps)
@@ -284,24 +310,15 @@ class visual_genome(imdb):
                 'height': data_json['height'],
                 'image_id': data_json['id']
             })
-            # max overlap with gt over classes (columns)
-            max_overlaps = overlaps.max(axis=1)
-            # gt class that had the max overlap
-            max_classes = overlaps.argmax(axis=1)
-            dictionary['max_classes'] = max_classes
-            dictionary['max_overlaps'] = max_overlaps
-            # sanity checks
-            # max overlap of 0 => class should be zero (background)
-            zero_inds = np.where(max_overlaps == 0)[0]
-            assert all(max_classes[zero_inds] == 0)
 
         return dictionary
 
 
 if __name__ == '__main__':
+    # TODO: delete testing option
     # cfg.LIMIT_RAM = False
-    # d = visual_genome('pre', '1.2')
-    d = visual_genome('train', '1.2')
+    d = visual_genome('pre', '1.2')
+    # d = visual_genome('train', '1.2')
     res = d.roidb
     from IPython import embed;
 

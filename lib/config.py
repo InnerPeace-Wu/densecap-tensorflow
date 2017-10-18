@@ -8,6 +8,9 @@
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ross Girshick
 # --------------------------------------------------------
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 """ config system for Densecap
 
@@ -39,8 +42,31 @@ __C.TRAIN = edict()
 __C.TRAIN.PROPOSAL_METHOD = 'gt'
 
 # Use horizontally-flipped images during training?
-# For now, it's not used in LIMIT_RAM version
 __C.TRAIN.USE_FLIPPED = True
+
+# Overlap threshold for a ROI to be considered foreground (if >= FG_THRESH)
+__C.TRAIN.FG_THRESH = 0.5
+
+# Overlap threshold for a ROI to be considered background (class = 0 if
+# overlap in [LO, HI))
+__C.TRAIN.BG_THRESH_HI = 0.5
+__C.TRAIN.BG_THRESH_LO = 0.1
+
+# Use RPN to detect objects
+__C.TRAIN.HAS_RPN = True
+
+# Train bounding-box regressors
+__C.TRAIN.BBOX_REG = True
+
+# Normalize the targets (subtract empirical mean, divide by empirical stddev)
+__C.TRAIN.BBOX_NORMALIZE_TARGETS = True
+
+# Normalize the targets using "precomputed" (or made up) means and stdevs
+# (BBOX_NORMALIZE_TARGETS must also be True)
+__C.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED = False
+__C.TRAIN.BBOX_NORMALIZE_MEANS = (0.0, 0.0, 0.0, 0.0)
+__C.TRAIN.BBOX_NORMALIZE_STDS = (0.1, 0.1, 0.2, 0.2)
+
 
 #
 # MISC
@@ -69,6 +95,9 @@ __C.EXP_DIR = 'default'
 # region description JSON file
 __C.LIMIT_RAM = True
 
+# For reproducibility
+__C.RNG_SEED = 3
+
 
 #
 # Functions
@@ -84,6 +113,22 @@ def get_output_dir(imdb, weights_filename):
     outdir = osp.abspath(osp.join(__C.ROOT_DIR, 'output', __C.EXP_DIR, imdb.name))
     if weights_filename is not None:
         outdir = osp.join(outdir, weights_filename)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    return outdir
+
+
+def get_output_tb_dir(imdb, weights_filename):
+    """Return the directory where tensorflow summaries are placed.
+    If the directory does not exist, it is created.
+
+    A canonical path is built using the name from an imdb and a network
+    (if not None).
+    """
+    outdir = osp.abspath(osp.join(__C.ROOT_DIR, 'tensorboard', __C.EXP_DIR, imdb.name))
+    if weights_filename is None:
+        weights_filename = 'default'
+    outdir = osp.join(outdir, weights_filename)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     return outdir
