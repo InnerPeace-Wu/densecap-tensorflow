@@ -5,7 +5,12 @@
 
 ## TODO:
 
-- [x] preprocessing dataset
+- [x] preprocessing dataset.
+- [ ] roi_data_layer & get data well prepared for feeding.
+- [ ] proposal layer
+- [ ] embedding layer
+- [ ] sentense data layer
+
 
 ## Dependencies
 
