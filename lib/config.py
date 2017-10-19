@@ -44,6 +44,27 @@ __C.TRAIN.PROPOSAL_METHOD = 'gt'
 # Use horizontally-flipped images during training?
 __C.TRAIN.USE_FLIPPED = True
 
+# Make minibatches from images that have similar aspect ratios (i.e. both
+# tall and thin or both short and wide) in order to avoid wasting computation
+# on zero-padding.
+__C.TRAIN.ASPECT_GROUPING = True
+
+# images to use per minibatch, we use 1 in default
+__C.TRAIN.IMS_PER_BATCH = 1
+
+# Scales to use during training (can list multiple scales)
+# Each scale is the pixel size of an image's shortest side
+__C.TRAIN.SCALES = (600,)
+
+# Max pixel size of the longest side of a scaled input image
+__C.TRAIN.MAX_SIZE = 720
+
+# Minibatch size (number of regions of interest [ROIs])
+__C.TRAIN.BATCH_SIZE = 256
+
+# Fraction of minibatch that is labeled foreground (i.e. class > 0)
+__C.TRAIN.FG_FRACTION = 0.25
+
 # Overlap threshold for a ROI to be considered foreground (if >= FG_THRESH)
 __C.TRAIN.FG_THRESH = 0.5
 
@@ -97,6 +118,11 @@ __C.LIMIT_RAM = True
 
 # For reproducibility
 __C.RNG_SEED = 3
+
+# Pixel mean values (BGR order) as a (1, 1, 3) array
+# We use the same pixel mean for all networks even though it's not exactly what
+# they were trained with
+__C.PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
 
 
 #
