@@ -9,7 +9,7 @@
 (i.e. the id number)  
 * Dataset typo: `bckground`
 
-```json
+```python
 {"region_id": 1936, "width": 40, "height": 38, "image_id": 1, 
 "phrase": "bicycles are seen in the bckground", "y": 320, "x": 318, 
 "phrase_tokens": ["bicycles", "are", "seen", "in", "the", "bckground"]}
@@ -17,7 +17,7 @@
 * Read a gt_region json take `1 ms`.
 * `x_gt_region/id.json` has the format:
 
-```json
+```python
 {
 "regions":[ ... 
             {"region_id": 1382, "width": 82, "height": 139, "image_id": 1, 
@@ -39,7 +39,7 @@
 
 * LIMIT_RAM example: 1.pkl
 
-```json
+```python
 {
 'gt_classes': array([1382, 1383, ..., 4090, 4091], dtype=int32), 
 'flipped': False, 
@@ -66,7 +66,7 @@
 
 * LIMIT_RAM example: 1_flip.pkl
 
-```json
+```python
 {
 'gt_classes': array([1382, 1383, ..., 4090, 4091], dtype=int32), 
 'flipped': True, 
@@ -92,7 +92,7 @@
 
 * UNLIMIT_RAM example: pre_gt_roidb.pkl
 
-```json
+```python
 {
 'gt_classes': array([1382, 1383, ..., 4090, 4091], dtype=int32), 
 'flipped': False, 
@@ -108,7 +108,7 @@
 
 * UNLIMIT_RAM exampl: 
 
-```json
+```python
 {1536: [3, 10, 20, 8, 6, 2, 9], 3584: [36, 38, 29, 17, 2, 37], ...}
 ```
 
