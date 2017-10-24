@@ -156,13 +156,13 @@ class SolverWrapper(object):
 def get_training_roidb(imdb):
     """Returns a roidb (Region of Interest database) for use in training."""
     if cfg.TRAIN.USE_FLIPPED and not cfg.LIMIT_RAM:
-        logging.info('Appending horizontally-flipped training examples...')
+        print('Appending horizontally-flipped training examples...')
         imdb.append_flipped_images()
-        logging.info('done')
+        print('done')
 
-    logging.info('Preparing training data...')
+    print('Preparing training data...')
     rdl_roidb.prepare_roidb(imdb)
-    logging.info('done')
+    print('done')
 
     return imdb.roidb
 

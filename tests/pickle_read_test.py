@@ -24,6 +24,8 @@ def pickle_test():
         data_ori = cPickle.load(fo)
     with open(phra, 'rb') as fp:
         data_phra = cPickle.load(fp)
+    # from IPython import embed;
+    # embed()
 
     print(data_cache)
     print ('flip------------------')

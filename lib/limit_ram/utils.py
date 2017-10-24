@@ -72,6 +72,7 @@ def flip_image(roidb):
              'gt_phrases': roidb['gt_phrases'],
              'width': roidb['width'],
              'height': roidb['height'],
+             'image': roidb['image'],
              'image_id': '%s_flip' % roidb['image_id']}
 
     return entry

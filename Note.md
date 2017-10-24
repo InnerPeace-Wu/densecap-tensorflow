@@ -63,6 +63,11 @@
 }
 ```
 
+**NOTE: `gt_phrases` add 1 before saving it. ** 
+```python
+# increment the stream -- 0 will be the EOS character
+stream = [s + 1 for s in stream]
+```
 
 * LIMIT_RAM example: 1_flip.pkl
 
@@ -122,4 +127,20 @@
 3. filter out the invalid roi before
 
 * add self.image_index to visual_genome class for filterd indexes. **Update:** change to self._image_index.
+
+* finish roidatalayer, **Read image in BGR order**. Example of `data.forward()` with 1.jpg
+
+```json
+{
+ 'gt_boxes': array([[  2.66399994e+02,   5.12999992e+01,   3.40200012e+02,
+                       1.76399994e+02,   1.38200000e+03],
+                    [  3.80700012e+02,   3.34799988e+02,   5.44500000e+02,
+                       4.32899994e+02,   1.38300000e+03], ...], dtype=float32),
+ 'data': array([[[[-14.9183712 , -28.93106651,  -9.59885979],
+                  [-18.94306374, -32.79834747, -13.62355137],
+                  [-11.24244404, -24.31069756,  -5.66058874],...]]], dtype=float32),
+ 'im_info': array([[ 540.        ,  720.        ,    0.89999998]], dtype=float32),
+ 'gt_phrases': {1536: [3, 10, 20, 8, 6, 2, 9], 3584: [36, 38, 29, 17, 2, 37], ...}
+}             
+```
   

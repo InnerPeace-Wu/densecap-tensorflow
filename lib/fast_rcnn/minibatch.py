@@ -40,7 +40,7 @@ def get_minibatch(roidb, num_classes):
     # fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
     # Get the input image blob, formatted for caffe
-    im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
+    im_blob, im_scales, roidb = _get_image_blob(roidb, random_scale_inds)
 
     blobs = {'data': im_blob}
 
@@ -58,6 +58,8 @@ def get_minibatch(roidb, num_classes):
             # [[im_blob.shape[2], im_blob.shape[3], im_scales[0]]],
             [[im_blob.shape[1], im_blob.shape[2], im_scales[0]]],
             dtype=np.float32)
+        if cfg.LIMIT_RAM:
+            blobs['gt_phrases'] = roidb[0]['gt_phrases']
     else:  # not using RPN
         raise NotImplementedError
         # # Now, build the region of interest and label blobs
@@ -171,7 +173,7 @@ def _get_image_blob(roidb, scale_inds):
     # Create a blob to hold the input images
     blob = im_list_to_blob(processed_ims)
 
-    return blob, im_scales
+    return blob, im_scales, roidb
 
 
 def _project_im_rois(im_rois, im_scale_factor):

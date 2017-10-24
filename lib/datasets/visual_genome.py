@@ -96,7 +96,7 @@ class visual_genome(imdb):
             with open(pjoin(self.region_imset_path, '%s.json' % index), 'r') as f:
                 image_path = json.load(f)['path']
         else:
-            image_path = self._gt_regions[index]['path']
+            image_path = self._gt_regions[str(index)]['path']
 
         assert os.path.exists(image_path), \
             'Path does not exist: {}'.format(image_path)

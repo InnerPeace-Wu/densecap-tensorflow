@@ -95,3 +95,7 @@ class RoIDataLayer(object):
             minibatch_db = [self._roidb[i] for i in db_inds]
         return get_minibatch(minibatch_db, self._num_classes)
 
+    def forward(self):
+        """Get blobs"""
+        blobs = self._get_next_minibatch()
+        return blobs
