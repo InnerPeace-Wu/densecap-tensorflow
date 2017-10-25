@@ -14,12 +14,14 @@ from tensorflow.contrib.slim import arg_scope
 
 import numpy as np
 
-from lib.rpn.snippets import generate_anchors_pre
-from lib.rpn.proposal_layer import proposal_layer
-from lib.rpn.proposal_top_layer import proposal_top_layer
-from lib.rpn.anchor_target_layer import anchor_target_layer
-from lib.rpn.proposal_target_layer import proposal_target_layer
-# from utils.visualization import draw_bounding_boxes
+from lib.layers.snippets import generate_anchors_pre
+from lib.layers.proposal_layer import proposal_layer
+from lib.layers.proposal_top_layer import proposal_top_layer
+from lib.layers.anchor_target_layer import anchor_target_layer
+from lib.layers.proposal_target_layer import proposal_target_layer
+from lib.layers.proposal_target_single_class_layer import proposal_target_single_class_layer
+from lib.layers.sentence_data_layer import sentence_data_layer
+from lib.utils.visualization import draw_bounding_boxes
 
 from lib.config import cfg
 
@@ -130,9 +132,11 @@ class Network(object):
             # Won't be back-propagated to rois anyway, but to save time
             bboxes = tf.stop_gradient(tf.concat([y1, x1, y2, x2], axis=1))
             pre_pool_size = cfg.POOLING_SIZE * 2
-            crops = tf.image.crop_and_resize(bottom, bboxes, tf.to_int32(batch_ids), [pre_pool_size, pre_pool_size],
+            crops = tf.image.crop_and_resize(bottom, bboxes, tf.to_int32(batch_ids),
+                                             [pre_pool_size, pre_pool_size],
                                              name="crops")
 
+        # slim.max_pool2d has stride 2 in default
         return slim.max_pool2d(crops, [2, 2], padding='SAME')
 
     def _dropout_layer(self, bottom, name, ratio=0.5):
@@ -161,6 +165,7 @@ class Network(object):
 
         return rpn_labels
 
+    # TODO: about to delete
     def _proposal_target_layer(self, rois, roi_scores, name):
         with tf.variable_scope(name) as scope:
             rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = tf.py_func(
@@ -186,6 +191,61 @@ class Network(object):
 
             return rois, roi_scores
 
+    # TODO: roi_scores are not needed. About to delete
+    def _proposal_target_single_class_layer(self, rois, roi_scores, name):
+
+        with tf.variable_scope(name) as scope:
+            rois, roi_scores, labels, bbox_targets, \
+            bbox_inside_weights, bbox_outside_weights, clss = tf.py_func(
+                proposal_target_single_class_layer,
+                [rois, roi_scores, self._gt_boxes],
+                [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+                name="proposal_target_single_class")
+
+            rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
+            roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
+            labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+            bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
+            bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
+            bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
+            clss.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+
+            self._proposal_targets['rois'] = rois
+            self._proposal_targets['labels'] = tf.to_int32(labels, name="to_int32")
+            self._proposal_targets['clss'] = tf.to_int32(clss, name="to_int32")
+            self._proposal_targets['bbox_targets'] = bbox_targets
+            self._proposal_targets['bbox_inside_weights'] = bbox_inside_weights
+            self._proposal_targets['bbox_outside_weights'] = bbox_outside_weights
+
+            self._score_summaries.update(self._proposal_targets)
+
+            return rois, labels
+
+    # TODO: send in the splits name
+    def _sentence_data_layer(self, name, split='train',
+                             time_steps=cfg.TIME_STEPS, mode = 'concat'):
+
+        num_regions = self._roi_labels.shape[0]
+        with tf.variable_scope(name) as scope:
+            input_sentence, target_sentence, cont_sentence, cont_bbox = \
+            tf.py_func(sentence_data_layer,
+                       [self._roi_labels, split, time_steps, mode, self._gt_phrases],
+                       [tf.float32, tf.float32, tf.float32, tf.float32],
+                       name='sentence_data')
+
+            input_sentence.set_shape([-1, num_regions])
+            target_sentence.set_shape([-1, num_regions])
+            cont_sentence.set_shape([-1, num_regions])
+            cont_bbox.set_shape([-1, num_regions])
+
+            self._sentence_data = {}
+            self._sentence_data['input_sentence'] = input_sentence
+            self._sentence_data['target_sentence'] = target_sentence
+            self._sentence_data['cont_sentence'] = cont_sentence
+            self._sentence_data['cont_bbox'] = cont_bbox
+
+        return input_sentence
+
     def _anchor_component(self):
         with tf.variable_scope('ANCHOR_' + self._tag) as scope:
             # just to get the shape right
@@ -202,12 +262,15 @@ class Network(object):
 
     def _build_network(self, is_training=True):
         # select initializers
-        if cfg.TRAIN.TRUNCATED:
+        if cfg.TRAIN.WEIGHT_INITIALIZER == 'truncated':
             initializer = tf.truncated_normal_initializer(mean=0.0, stddev=0.01)
             initializer_bbox = tf.truncated_normal_initializer(mean=0.0, stddev=0.001)
-        else:
+        elif cfg.TRAIN.WEIGHT_INITIALIZER == 'normal':
             initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
             initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
+        else:
+            initializer = tf.contrib.layers.xavier_initializer()
+            initializer_bbox = tf.contrib.layers.xavier_initializer()
 
         net_conv = self._image_to_head(is_training)
         with tf.variable_scope(self._scope, self._scope):
@@ -221,15 +284,18 @@ class Network(object):
             else:
                 raise NotImplementedError
 
-        fc7 = self._head_to_tail(pool5, is_training)
-        with tf.variable_scope(self._scope, self._scope):
-            # region classification
-            cls_prob, bbox_pred = self._region_classification(fc7, is_training,
-                                                              initializer, initializer_bbox)
+            # sentence data layer
+
+        # TODO: about to delete
+        # fc7 = self._head_to_tail(pool5, is_training)
+        # with tf.variable_scope(self._scope, self._scope):
+        #     region classification
+        #     cls_prob, bbox_pred = self._region_classification(fc7, is_training,
+        #                                                       initializer, initializer_bbox)
 
         self._score_summaries.update(self._predictions)
 
-        return rois, cls_prob, bbox_pred
+        # return rois, cls_prob, bbox_pred
 
     def _smooth_l1_loss(self, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights, sigma=1.0, dim=[1]):
         sigma_2 = sigma ** 2
@@ -292,7 +358,8 @@ class Network(object):
         return loss
 
     def _region_proposal(self, net_conv, is_training, initializer):
-        rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training, weights_initializer=initializer,
+        rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training,
+                          weights_initializer=initializer,
                           scope="rpn_conv/3x3")
         self._act_summaries.append(rpn)
         rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
@@ -301,7 +368,7 @@ class Network(object):
         # change it so that the score has 2 as its channel size
         rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
         rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
-        rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred")
+        # rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred")
         rpn_cls_prob = self._reshape_layer(rpn_cls_prob_reshape, self._num_anchors * 2, "rpn_cls_prob")
         rpn_bbox_pred = slim.conv2d(rpn, self._num_anchors * 4, [1, 1], trainable=is_training,
                                     weights_initializer=initializer,
@@ -311,7 +378,9 @@ class Network(object):
             rpn_labels = self._anchor_target_layer(rpn_cls_score, "anchor")
             # Try to have a deterministic order for the computing graph, for reproducibility
             with tf.control_dependencies([rpn_labels]):
-                rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
+                # rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
+                rois, labels = self._proposal_target_single_class_layer(rois, roi_scores, "rpn_rois")
+                self._roi_labels = labels
         else:
             if cfg.TEST.MODE == 'nms':
                 rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
@@ -323,12 +392,14 @@ class Network(object):
         self._predictions["rpn_cls_score"] = rpn_cls_score
         self._predictions["rpn_cls_score_reshape"] = rpn_cls_score_reshape
         self._predictions["rpn_cls_prob"] = rpn_cls_prob
-        self._predictions["rpn_cls_pred"] = rpn_cls_pred
+        # self._predictions["rpn_cls_pred"] = rpn_cls_pred
         self._predictions["rpn_bbox_pred"] = rpn_bbox_pred
         self._predictions["rois"] = rois
 
         return rois
 
+
+    # TODO: about to delete
     def _region_classification(self, fc7, is_training, initializer, initializer_bbox):
         cls_score = slim.fully_connected(fc7, self._num_classes,
                                          weights_initializer=initializer,
@@ -354,7 +425,7 @@ class Network(object):
     def _head_to_tail(self, pool5, is_training, reuse=None):
         raise NotImplementedError
 
-    def create_architecture(self, mode, num_classes, tag=None,
+    def create_architecture(self, mode, num_classes=1, tag=None,
                             anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):
         self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
         self._im_info = tf.placeholder(tf.float32, shape=[3])
@@ -471,6 +542,12 @@ class Network(object):
     def train_step_with_summary(self, sess, blobs, train_op):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                      self._gt_boxes: blobs['gt_boxes']}
+        # Add gt_phrases for LIMIT_RAM version
+        if cfg.LIMIT_RAM:
+            self._gt_phrases = blobs['gt_phrases']
+        else:
+            self._gt_phrases = None
+
         rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                                      self._losses['rpn_loss_box'],
                                                                                      self._losses['cross_entropy'],

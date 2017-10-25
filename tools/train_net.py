@@ -26,11 +26,14 @@ import sys
 import six
 import argparse
 import numpy as np
+import tensorflow as tf
 
 from lib.config import cfg, cfg_from_file, cfg_from_list, get_output_dir, get_output_tb_dir
 from lib.datasets.factory import get_imdb
 import lib.datasets.imdb
 from lib.dense_cap.train import get_training_roidb, train_net
+from lib.nets.vgg16 import vgg16
+from lib.nets.resnet_v1 import resnetv1
 import pprint
 
 # set up log in bash file
@@ -140,7 +143,7 @@ def main(_):
     if not args.randomize:
         # fix the random seeds (numpy and caffe) for reproducibility
         np.random.seed(cfg.RNG_SEED)
-        # TODO: add tensorflow random seed
+        tf.set_random_seed(cfg.RNG_SEED)
 
     if not cfg.LIMIT_RAM:
         imdb, roidb = combined_roidb(args.imdb_name)
@@ -165,6 +168,11 @@ def main(_):
         net = resnetv1(num_layers=152)
     else:
         raise NotImplementedError
+
+    # TODO: "imdb" may not be useful during training
+    train_net(net, imdb, roidb, output_dir, tb_dir,
+              pretrained_model=args.pretrained_model,
+              max_iters=args.max_iters)
 
 
 if __name__ == '__main__':

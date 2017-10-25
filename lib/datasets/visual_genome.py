@@ -7,8 +7,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
-sys.path.append("..")
+# import sys
+# sys.path.append("..")
 
 import os
 import numpy as np
@@ -234,7 +234,7 @@ class visual_genome(imdb):
         filename = self.config['rpn_file']
         print('loading {}'.format(filename))
         assert os.path.exists(filename), \
-            'rpn data not found at: {}'.format(filename)
+            'layers data not found at: {}'.format(filename)
         with open(filename, 'rb') as f:
             box_list = cPickle.load(f)
         return self.create_roidb_from_box_list(box_list, gt_roidb)

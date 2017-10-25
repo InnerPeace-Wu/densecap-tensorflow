@@ -8,7 +8,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-from lib.rpn.generate_anchors import generate_anchors
+from lib.layers.generate_anchors import generate_anchors
 
 
 def generate_anchors_pre(height, width, feat_stride, anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):

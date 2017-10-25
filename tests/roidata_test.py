@@ -80,6 +80,18 @@ def vis_regions(im, regions, phrases=None, path='/home/joe/git/VG_raw_data/image
         else:
             cv2.imwrite('%s/out_%s.jpg' % (path, i), im_new)
 
+def get_data_test():
+    imdb = visual_genome('pre', '1.2')
+    if cfg.LIMIT_RAM:
+        roidb = imdb.roidb
+    else:
+        roidb = get_training_roidb(imdb)
+        roidb = filter_roidb(roidb)
+    rdata = RoIDataLayer(roidb, num_classes=2)
+    data = rdata.forward()
+
+    return data
+
 
 if __name__ == '__main__':
     imdb = visual_genome('pre', '1.2')

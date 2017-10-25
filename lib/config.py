@@ -88,6 +88,131 @@ __C.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED = False
 __C.TRAIN.BBOX_NORMALIZE_MEANS = (0.0, 0.0, 0.0, 0.0)
 __C.TRAIN.BBOX_NORMALIZE_STDS = (0.1, 0.1, 0.2, 0.2)
 
+# solver.prototxt specifies the snapshot path prefix, this adds an optional
+# infix to yield the path: <prefix>[_<infix>]_iters_XYZ.caffemodel
+__C.TRAIN.SNAPSHOT_INFIX = 'res50_densecap'
+
+# Weight decay, for regularization
+__C.TRAIN.WEIGHT_DECAY = 0.0001
+
+# Whether to have weight decay on bias as well
+__C.TRAIN.BIAS_DECAY = False
+
+# Weight initializer: 'xavier', 'truncated', 'normal'
+__C.TRAIN.WEIGHT_INITIALIZER = 'xavier'
+
+# RPN OPTIONS FOR TRAINING
+
+# IOU >= thresh: positive example
+__C.TRAIN.RPN_POSITIVE_OVERLAP = 0.7
+
+# IOU < thresh: negative example
+__C.TRAIN.RPN_NEGATIVE_OVERLAP = 0.3
+
+# If an anchor statisfied by positive and negative conditions set to negative
+__C.TRAIN.RPN_CLOBBER_POSITIVES = False
+
+# Max number of foreground examples
+__C.TRAIN.RPN_FG_FRACTION = 0.5
+
+# Total number of examples
+__C.TRAIN.RPN_BATCHSIZE = 256
+
+# NMS threshold used on RPN proposals
+__C.TRAIN.RPN_NMS_THRESH = 0.7
+
+# Number of top scoring boxes to keep before apply NMS to RPN proposals
+__C.TRAIN.RPN_PRE_NMS_TOP_N = 12000
+
+# Number of top scoring boxes to keep after applying NMS to RPN proposals
+__C.TRAIN.RPN_POST_NMS_TOP_N = 2000
+
+# Proposal height and width both need to be greater than RPN_MIN_SIZE (at orig image scale)
+# Follow tf_faster_rcnn we do not use it
+__C.TRAIN.RPN_MIN_SIZE = 16
+
+# Deprecated (outside weights)
+__C.TRAIN.RPN_BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
+
+# Give the positive RPN examples weight of p * 1 / {num positives}
+# and give negatives a weight of (1 - p)
+# Set to -1.0 to use uniform example weighting
+__C.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
+
+# Whether to add ground truth boxes to the pool when sampling regions
+__C.TRAIN.USE_GT = False
+
+# Deprecated (inside weights)
+__C.TRAIN.BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
+
+# Overlap required between a ROI and ground-truth box in order for that ROI to
+# be used as a bounding-box regression training example
+__C.TRAIN.BBOX_THRESH = 0.5
+
+#
+# ResNet options
+#
+
+__C.RESNET = edict()
+
+# Option to set if max-pooling is appended after crop_and_resize.
+# if true, the region will be resized to a square of 2xPOOLING_SIZE,
+# then 2x2 max-pooling is applied; otherwise the region will be directly
+# resized to a square of POOLING_SIZE
+__C.RESNET.MAX_POOL = False
+
+# Number of fixed blocks during training, by default the first of all 4 blocks is fixed
+# Range: 0 (none) to 3 (all)
+__C.RESNET.FIXED_BLOCKS = 1
+
+
+#
+# Testing options
+#
+__C.TEST = edict()
+
+# Scale to use during testing (can NOT list multiple scales)
+# The scale is the pixel size of an image's shortest side
+__C.TEST.SCALES = (600,)
+
+# Max pixel size of the longest side of a scaled input image
+__C.TEST.MAX_SIZE = 1000
+
+# Overlap threshold used for non-maximum suppression (suppress boxes with
+# IoU >= this threshold)
+__C.TEST.NMS = 0.3
+
+# Experimental: treat the (K+1) units in the cls_score layer as linear
+# predictors (trained, eg, with one-vs-rest SVMs).
+__C.TEST.SVM = False
+
+# Test using bounding-box regressors
+__C.TEST.BBOX_REG = True
+
+# Propose boxes
+__C.TEST.HAS_RPN = False
+
+# Test using these proposals
+__C.TEST.PROPOSAL_METHOD = 'gt'
+
+## NMS threshold used on RPN proposals
+__C.TEST.RPN_NMS_THRESH = 0.7
+
+# Number of top scoring boxes to keep before apply NMS to RPN proposals
+__C.TEST.RPN_PRE_NMS_TOP_N = 6000
+
+# Number of top scoring boxes to keep after applying NMS to RPN proposals
+__C.TEST.RPN_POST_NMS_TOP_N = 300
+
+# Proposal height and width both need to be greater than RPN_MIN_SIZE (at orig image scale)
+__C.TEST.RPN_MIN_SIZE = 16
+
+# Testing mode, default to be 'nms', 'top' is slower but better
+# See report for details
+__C.TEST.MODE = 'nms'
+
+# Only useful when TEST.MODE is 'top', specifies the number of top proposals to select
+__C.TEST.RPN_TOP_N = 5000
 
 #
 # MISC
@@ -98,13 +223,15 @@ __C.ROOT_DIR = osp.abspath(pjoin(osp.dirname(__file__), '..'))
 
 # Data directory
 # __C.DATA_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'data'))
-__C.DATA_DIR = '/home/joe/git/visual_genome'
+# TODO: delete testing options
+# __C.DATA_DIR = '/home/joe/git/visual_genome'
+__C.DATA_DIR = '/home/joe/git/visual_genome_test'
 
 # Log directory
 __C.LOG_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'logs'))
 
 # Cache directory
-__C.CACHE_DIR = __C.DATA_DIR
+__C.CACHE_DIR = __C.DATA_DIR + '/1.2'
 
 # Dataset splits directory
 __C.SPLIT_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'info'))
@@ -123,6 +250,34 @@ __C.RNG_SEED = 3
 # We use the same pixel mean for all networks even though it's not exactly what
 # they were trained with
 __C.PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
+
+# Store the meta information for continuing training.
+# __C.STORE_META_INFO = True
+
+# Use GPU implementation of non-maximum suppression
+__C.USE_GPU_NMS = True
+
+# Default pooling mode, only 'crop' is available
+__C.POOLING_MODE = 'crop'
+
+# Size of the pooled region after RoI pooling
+__C.POOLING_SIZE = 7
+
+# Anchor scales for RPN
+__C.ANCHOR_SCALES = [4, 8, 16, 32]
+
+# Anchor ratios for RPN
+__C.ANCHOR_RATIOS = [0.5, 1, 2]
+
+# Number of filters for the RPN layer
+__C.RPN_CHANNELS = 512
+
+# Filter out small boxes
+__C.FILTER_SMALL_BOX = False
+
+# Time steps for recurrent nets
+# It's related to the max_length of the sentence
+__C.TIME_STEPS = 12
 
 
 #
