@@ -1,4 +1,4 @@
-# densecap-tensorflow
+# Densecap-tensorflow
 
 ## NOTE
 * The scripts should be compatible with both python 2.X and 3.X. Although I built it under python 2.7.
@@ -7,9 +7,9 @@
 
 - [x] preprocessing dataset.
 - [x] roi_data_layer & get data well prepared for feeding.
-- [ ] proposal layer
+- [x] proposal layer
+- [x] sentense data layer
 - [ ] embedding layer
-- [ ] sentense data layer
 
 
 ## Dependencies
