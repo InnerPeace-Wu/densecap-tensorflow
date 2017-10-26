@@ -10,6 +10,7 @@
 - [x] proposal layer
 - [x] sentense data layer
 - [ ] embedding layer
+- [ ] context fusion
 
 
 ## Dependencies
