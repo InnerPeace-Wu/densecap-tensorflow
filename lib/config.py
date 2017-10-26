@@ -279,6 +279,9 @@ __C.FILTER_SMALL_BOX = False
 # It's related to the max_length of the sentence
 __C.TIME_STEPS = 12
 
+# For overall debug
+__C.DEBUG_ALL = True
+
 
 #
 # Functions

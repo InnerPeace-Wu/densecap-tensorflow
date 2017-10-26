@@ -41,29 +41,29 @@ def sentence_data_layer(labels, split='train', time_steps=12, mode='concat', gt_
     assert len(labels.shape) == 1, 'Pleace check the shape of "label"'
     num_regions = labels.shape[0]
     if mode == 'repeat':
-        input_sentence = np.zeros((time_steps, num_regions), dtype=np.float32)
+        input_sentence = np.zeros((num_regions, time_steps), dtype=np.float32)
     elif mode == 'concat':
-        input_sentence = np.zeros((time_steps - 1, num_regions), dtype=np.float32)
+        input_sentence = np.zeros((num_regions, time_steps - 1), dtype=np.float32)
 
-    target_sentence = np.zeros((time_steps, num_regions), dtype=np.float32)
-    cont_sentence = np.zeros((time_steps, num_regions), dtype=np.float32)
-    cont_bbox = np.zeros((time_steps, num_regions), dtype=np.float32)
+    target_sentence = np.zeros((num_regions, time_steps), dtype=np.float32)
+    cont_sentence = np.zeros((num_regions, time_steps), dtype=np.float32)
+    cont_bbox = np.zeros((num_regions, time_steps), dtype=np.float32)
     for i in xrange(num_regions):
         stream = get_streams(phrases, int(labels[i]))
-        input_sentence[:, i] = stream['input_sentence']
-        target_sentence[:, i] = stream['target_sentence']
-        cont_sentence[:, i] = stream['cont_sentence']
-        cont_bbox[:, i] = stream['cont_bbox']
+        input_sentence[i, :] = stream['input_sentence']
+        target_sentence[i, :] = stream['target_sentence']
+        cont_sentence[i, :] = stream['cont_sentence']
+        cont_bbox[i, :] = stream['cont_bbox']
 
     if DEBUG:
         print('sentence data layer input (first 3)')
         for l in labels[:3]:
             print(l, phrases[int(l)])
         print('sentence data layer output (first 3)')
-        print(input_sentence[:, :3])
-        print(target_sentence[:, :3])
-        print(cont_sentence[:, :3])
-        print(cont_bbox[:, :3])
+        print(input_sentence[:3, :])
+        print(target_sentence[:3, :])
+        print(cont_sentence[:3, :])
+        print(cont_bbox[:3, :])
 
     return input_sentence, target_sentence, cont_sentence, cont_bbox
 

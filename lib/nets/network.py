@@ -225,6 +225,9 @@ class Network(object):
     def _sentence_data_layer(self, name, split='train',
                              time_steps=cfg.TIME_STEPS, mode = 'concat'):
 
+        if cfg.DEBUG_ALL:
+            split = 'pre'
+
         num_regions = self._roi_labels.shape[0]
         with tf.variable_scope(name) as scope:
             input_sentence, target_sentence, cont_sentence, cont_bbox = \
@@ -286,16 +289,15 @@ class Network(object):
 
             # sentence data layer
 
-        # TODO: about to delete
-        # fc7 = self._head_to_tail(pool5, is_training)
-        # with tf.variable_scope(self._scope, self._scope):
-        #     region classification
-        #     cls_prob, bbox_pred = self._region_classification(fc7, is_training,
-        #                                                       initializer, initializer_bbox)
+        fc7 = self._head_to_tail(pool5, is_training)
+        with tf.variable_scope(self._scope, self._scope):
+            # region classification
+            cls_prob = self._region_classification(fc7, is_training,
+                                                   initializer, initializer_bbox)
 
         self._score_summaries.update(self._predictions)
 
-        # return rois, cls_prob, bbox_pred
+        return rois, cls_prob
 
     def _smooth_l1_loss(self, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights, sigma=1.0, dim=[1]):
         sigma_2 = sigma ** 2
@@ -398,26 +400,26 @@ class Network(object):
 
         return rois
 
-
-    # TODO: about to delete
-    def _region_classification(self, fc7, is_training, initializer, initializer_bbox):
-        cls_score = slim.fully_connected(fc7, self._num_classes,
+    # TODO: clear stuff
+    def _region_classification(self, fc7, is_training, initializer):
+        # predict two class: fg or bg
+        cls_score = slim.fully_connected(fc7, self._num_classes + 1,
                                          weights_initializer=initializer,
                                          trainable=is_training,
                                          activation_fn=None, scope='cls_score')
         cls_prob = self._softmax_layer(cls_score, "cls_prob")
-        cls_pred = tf.argmax(cls_score, axis=1, name="cls_pred")
-        bbox_pred = slim.fully_connected(fc7, self._num_classes * 4,
-                                         weights_initializer=initializer_bbox,
-                                         trainable=is_training,
-                                         activation_fn=None, scope='bbox_pred')
+        # cls_pred = tf.argmax(cls_score, axis=1, name="cls_pred")
+        # bbox_pred = slim.fully_connected(fc7, self._num_classes * 4,
+        #                                  weights_initializer=initializer_bbox,
+        #                                  trainable=is_training,
+        #                                  activation_fn=None, scope='bbox_pred')
 
         self._predictions["cls_score"] = cls_score
-        self._predictions["cls_pred"] = cls_pred
+        # self._predictions["cls_pred"] = cls_pred
         self._predictions["cls_prob"] = cls_prob
-        self._predictions["bbox_pred"] = bbox_pred
+        # self._predictions["bbox_pred"] = bbox_pred
 
-        return cls_prob, bbox_pred
+        return cls_prob
 
     def _image_to_head(self, is_training, reuse=None):
         raise NotImplementedError
