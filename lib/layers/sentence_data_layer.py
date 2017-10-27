@@ -17,22 +17,21 @@ import numpy as np
 import six
 from six.moves import xrange
 
-# TODO: disable debug
+# TODO: disable debug and clear stuff
 DEBUG = True
 
 
-def sentence_data_layer(labels, split='train', time_steps=12, mode='concat', gt_phrases=None):
+def sentence_data_layer(labels, gt_phrases, time_steps=12, mode='concat'):
     all_modes = ('repeat', 'concat')
     assert (mode in all_modes), "Wrong type of mode which should be 'repeat' or 'concat'"
 
-    if cfg.LIMIT_RAM:
-        phrases = gt_phrases
-    else:
-        phrase_path = '%s/%s_gt_phrases.pkl' % (cfg.CACHE_DIR, split.lower())
-        phrases = cPickle.load(open(phrase_path, 'rb'))
-
     if DEBUG:
-        all_len = [len(stream) for k, stream in six.iteritems(phrases)]
+        # if cfg.LIMIT_RAM:
+        #     _phrases = gt_phrases
+        # else:
+        #     phrase_path = '%s/%s_gt_phrases.pkl' % (cfg.CACHE_DIR, split.lower())
+        #     _phrases = cPickle.load(open(phrase_path, 'rb'))
+        all_len = [len(stream) for stream in gt_phrases]
         count_len = Counter(all_len)
         print('Distribution of caption length')
         print(count_len)
@@ -49,7 +48,7 @@ def sentence_data_layer(labels, split='train', time_steps=12, mode='concat', gt_
     cont_sentence = np.zeros((num_regions, time_steps), dtype=np.float32)
     cont_bbox = np.zeros((num_regions, time_steps), dtype=np.float32)
     for i in xrange(num_regions):
-        stream = get_streams(phrases, int(labels[i]))
+        stream = get_streams(gt_phrases, int(labels[i]), time_steps, mode)
         input_sentence[i, :] = stream['input_sentence']
         target_sentence[i, :] = stream['target_sentence']
         cont_sentence[i, :] = stream['cont_sentence']
@@ -57,8 +56,8 @@ def sentence_data_layer(labels, split='train', time_steps=12, mode='concat', gt_
 
     if DEBUG:
         print('sentence data layer input (first 3)')
-        for l in labels[:3]:
-            print(l, phrases[int(l)])
+        for ix, l in enumerate(labels[:3]):
+            print(l, gt_phrases[ix])
         print('sentence data layer output (first 3)')
         print(input_sentence[:3, :])
         print(target_sentence[:3, :])

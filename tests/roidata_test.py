@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 from six.moves import xrange
 
-cfg.LIMIT_RAM = False
+cfg.LIMIT_RAM = True
 DEFAULT_PATH = '/home/joe/git/visual_genome_test/1.2'
 
 
@@ -69,16 +69,17 @@ def vis_regions(im, regions, phrases=None, path='/home/joe/git/VG_raw_data/image
     im = im + mean_values  # offset to original values
 
     for i in xrange(len(regions)):
+        if i > 9:
+            print ('save 10 examples and break out.')
+            break
         bbox = regions[i, :4]
         region_id = regions[i, 4]
         if cfg.LIMIT_RAM:
-            caption = ' '.join([vocab[j - 1] for j in phrases[region_id]])
+            # position 0,1,2 have been taken
+            caption = ' '.join([vocab[j - 3] for j in phrases[i]])
         im_new = np.copy(im)
         cv2.rectangle(im_new, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 0, 255), 2)
-        if cfg.LIMIT_RAM:
-            cv2.imwrite('%s/%s.jpg' % (path, caption), im_new)
-        else:
-            cv2.imwrite('%s/out_%s.jpg' % (path, i), im_new)
+        cv2.imwrite('%s/%s.jpg' % (path, caption), im_new)
 
 def get_data_test():
     imdb = visual_genome('pre', '1.2')
@@ -106,10 +107,7 @@ if __name__ == '__main__':
     # print(data)
     regions = data['gt_boxes']
     im = data['data'][0]
-    if cfg.LIMIT_RAM:
-        phrases = data['gt_phrases']
-    else:
-        phrases = None
+    phrases = data['gt_phrases']
     vis_regions(im, regions, phrases=phrases)
 
     # from IPython import embed;

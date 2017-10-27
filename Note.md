@@ -35,6 +35,7 @@
 
 ### roi_db
 
+* **Add "gt_phrases" to every roidb, both with LIMIT_RAM version or UNLIMIT_RAM version.
 * **SAVE LIMIT_RAM VISION AS PKL FILE.**
 
 * LIMIT_RAM example: 1.pkl

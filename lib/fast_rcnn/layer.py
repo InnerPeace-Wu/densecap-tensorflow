@@ -18,10 +18,9 @@ import json
 class RoIDataLayer(object):
     """densecap data layer used for training."""
 
-    def __init__(self, roidb, num_classes, random=False):
+    def __init__(self, roidb, random=False):
         """set the roidb to be used by this layer during training."""
         self._roidb = roidb
-        self._num_classes = num_classes
         # set a random flag
         self._random = random
         self._shuffle_roidb_inds()
@@ -93,7 +92,7 @@ class RoIDataLayer(object):
             minibatch_db = pjoin(self._roidb, "%s.pkl" % minibatch_db)
         else:
             minibatch_db = [self._roidb[i] for i in db_inds]
-        return get_minibatch(minibatch_db, self._num_classes)
+        return get_minibatch(minibatch_db)
 
     def forward(self):
         """Get blobs"""

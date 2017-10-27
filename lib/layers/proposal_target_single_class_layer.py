@@ -19,7 +19,7 @@ from lib.fast_rcnn.bbox_transform import bbox_transform
 from lib.utils.cython_bbox import bbox_overlaps
 
 
-def proposal_target_single_class_layer(rpn_rois, rpn_scores, gt_boxes):
+def proposal_target_single_class_layer(rpn_rois, rpn_scores, gt_boxes, gt_phrases):
     """
   Assign object detection proposals to ground-truth targets. Produces proposal
   classification labels and bounding-box regression targets.

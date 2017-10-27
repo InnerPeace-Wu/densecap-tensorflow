@@ -57,7 +57,7 @@ SPLITS_JSON = osp.join(cfg.ROOT_DIR, 'info/densecap_splits.json')
 # UNK_IDENTIFIER is the word used to identify unknown words
 UNK_IDENTIFIER = '<unk>'
 
-MAX_WORDS = 10
+MAX_WORDS = cfg.MAX_WORDS
 
 
 class VGDataProcessor:

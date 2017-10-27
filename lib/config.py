@@ -282,6 +282,9 @@ __C.TIME_STEPS = 12
 # For overall debug
 __C.DEBUG_ALL = True
 
+# maximum words for training and testing
+__C.MAX_WORDS = 10
+
 
 #
 # Functions

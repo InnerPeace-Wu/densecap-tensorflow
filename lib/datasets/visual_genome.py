@@ -153,23 +153,24 @@ class visual_genome(imdb):
             return roidb
 
         gt_roidb = [self._load_vg_annotation(index) for index in self._image_index]
-        gt_phrases = {}
-        for k, v in six.iteritems(self._gt_regions):
-            for reg in v['regions']:
-                gt_phrases[reg['region_id']] = self._line_to_stream(reg['phrase_tokens'])
-
-                if DEBUG:
-                    # CHECK consistency
-                    for wi, w in zip(gt_phrases[reg['region_id']], reg['phrase_tokens']):
-                        vocab_w = self._vocabulary_inverted[wi - 1]
-                        print(vocab_w, w)
-                        assert (vocab_w == UNK_IDENTIFIER or vocab_w == w)
+        # TODO: clear stuff
+        # gt_phrases = {}
+        # for k, v in six.iteritems(self._gt_regions):
+        #     for reg in v['regions']:
+        #         gt_phrases[reg['region_id']] = self._line_to_stream(reg['phrase_tokens'])
+        #
+        #         if DEBUG:
+        #             # CHECK consistency
+        #             for wi, w in zip(gt_phrases[reg['region_id']], reg['phrase_tokens']):
+        #                 vocab_w = self._vocabulary_inverted[wi - 1]
+        #                 print(vocab_w, w)
+        #                 assert (vocab_w == UNK_IDENTIFIER or vocab_w == w)
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
-        with open(cache_file_phrases, 'wb') as fid:
-            cPickle.dump(gt_phrases, fid, cPickle.HIGHEST_PROTOCOL)
+        # with open(cache_file_phrases, 'wb') as fid:
+        #     cPickle.dump(gt_phrases, fid, cPickle.HIGHEST_PROTOCOL)
         print('wrote gt roidb to {}'.format(cache_file))
-        print('wrote gt phrases to {}'.format(cache_file_phrases))
+        # print('wrote gt phrases to {}'.format(cache_file_phrases))
         return gt_roidb
 
     def gt_roidb_limit_ram(self):
@@ -247,8 +248,12 @@ class visual_genome(imdb):
                 stream.append(self._vocabulary[word])
             else:  # unknown word; append UNK
                 stream.append(self._vocabulary[UNK_IDENTIFIER])
-        # increment the stream -- 0 will be the EOS character
-        stream = [s + 1 for s in stream]
+        # increment the stream --
+        # 0 will be the <pad> character
+        # 1 will be the <SOS> character
+        # 2 will be the <EOS> character
+
+        stream = [s + 3 for s in stream]
         return stream
 
     def _load_vg_annotation(self, index):
@@ -261,11 +266,11 @@ class visual_genome(imdb):
         if not cfg.LIMIT_RAM:
             regions = self._gt_regions[index]['regions']
         else:
-            gt_phrases = {}
             with open(self.region_imset_path + '/%s.json' % index, 'r') as f:
                 data_json = json.load(f)
                 regions = data_json['regions']
 
+        gt_phrases = []
         num_regs = len(regions)
         boxes = np.zeros((num_regs, 4), dtype=np.uint16)
         gt_classes = np.zeros((num_regs), dtype=np.int32)
@@ -287,24 +292,25 @@ class visual_genome(imdb):
             overlaps[ix, 1] = 1.0
             seg_areas[ix] = (x2 - x1 + 1) * (y2 - y1 + 1)
 
-            if cfg.LIMIT_RAM:
-                gt_phrases[reg['region_id']] = self._line_to_stream(reg['phrase_tokens'])
-                if DEBUG:
-                    # CHECK consistency
-                    for wi, w in zip(gt_phrases[reg['region_id']], reg['phrase_tokens']):
-                        vocab_w = self._vocabulary_inverted[wi - 1]
-                        print(vocab_w, w)
-                        assert (vocab_w == UNK_IDENTIFIER or vocab_w == w)
+            # if cfg.LIMIT_RAM:
+            # gt_phrases[reg['region_id']] = self._line_to_stream(reg['phrase_tokens'])
+            gt_phrases.append(self._line_to_stream(reg['phrase_tokens']))
+            if DEBUG:
+                # CHECK consistency
+                for wi, w in zip(gt_phrases[ix], reg['phrase_tokens']):
+                    vocab_w = self._vocabulary_inverted[wi - 1]
+                    print(vocab_w, w)
+                    assert (vocab_w == UNK_IDENTIFIER or vocab_w == w)
 
         sparse_overlaps = scipy.sparse.csr_matrix(overlaps)
         dictionary = {'boxes': boxes,
                       'gt_classes': gt_classes,
                       'gt_overlaps': sparse_overlaps,
                       'flipped': False,
+                      'gt_phrases': gt_phrases,
                       'seg_areas': seg_areas}
         if cfg.LIMIT_RAM:
             dictionary.update({
-                'gt_phrases': gt_phrases,
                 'image': data_json['path'],
                 'width': data_json['width'],
                 'height': data_json['height'],

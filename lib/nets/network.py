@@ -221,18 +221,14 @@ class Network(object):
 
             return rois, labels
 
-    # TODO: send in the splits name
-    def _sentence_data_layer(self, name, split='train',
-                             time_steps=cfg.TIME_STEPS, mode = 'concat'):
-
-        if cfg.DEBUG_ALL:
-            split = 'pre'
+    def _sentence_data_layer(self, name,
+                             time_steps=cfg.TIME_STEPS, mode='concat'):
 
         num_regions = self._roi_labels.shape[0]
         with tf.variable_scope(name) as scope:
             input_sentence, target_sentence, cont_sentence, cont_bbox = \
             tf.py_func(sentence_data_layer,
-                       [self._roi_labels, split, time_steps, mode, self._gt_phrases],
+                       [self._roi_labels, time_steps, mode, self._gt_phrases],
                        [tf.float32, tf.float32, tf.float32, tf.float32],
                        name='sentence_data')
 
@@ -432,6 +428,8 @@ class Network(object):
         self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
         self._im_info = tf.placeholder(tf.float32, shape=[3])
         self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
+        # add 2 for: <SOS> and <EOS>
+        self._gt_phrases = tf.placeholder(tf.int32, shape=[None, cfg.MAX_WORDS])
         self._tag = tag
 
         self._num_classes = num_classes
@@ -543,12 +541,8 @@ class Network(object):
 
     def train_step_with_summary(self, sess, blobs, train_op):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes']}
-        # Add gt_phrases for LIMIT_RAM version
-        if cfg.LIMIT_RAM:
-            self._gt_phrases = blobs['gt_phrases']
-        else:
-            self._gt_phrases = None
+                     self._gt_boxes: blobs['gt_boxes'],
+                     self._gt_phrases: blobs['gt_phrases']}
 
         rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                                      self._losses['rpn_loss_box'],
