@@ -45,19 +45,21 @@ def proposal_target_single_class_layer(rpn_rois, rpn_scores, gt_boxes, gt_phrase
 
     # Sample rois with classification labels and bounding box regression
     # targets
-    labels, rois, roi_scores, bbox_targets, bbox_inside_weights = _sample_rois(
-        all_rois, all_scores, gt_boxes, fg_rois_per_image,
+    labels, rois, roi_scores, bbox_targets, bbox_inside_weights, phrases = _sample_rois(
+        all_rois, all_scores, gt_boxes, gt_phrases, fg_rois_per_image,
         rois_per_image)
 
     rois = rois.reshape(-1, 5)
     roi_scores = roi_scores.reshape(-1)
-    labels = labels.reshape(-1, 1)
+    labels = labels.reshape(-1, )
+    phrases = phrases.reshape(-1, cfg.MAX_WORDS)
     bbox_targets = bbox_targets.reshape(-1, 4)
     bbox_inside_weights = bbox_inside_weights.reshape(-1, 4)
     bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
     clss = np.array(labels > 0).astype(np.float32)
 
-    return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, clss
+    return rois, roi_scores, labels, bbox_targets, \
+           bbox_inside_weights, bbox_outside_weights, clss, phrases
 
 
 def _get_bbox_regression_labels(bbox_target_data):
@@ -95,7 +97,7 @@ def _compute_targets(ex_rois, gt_rois, labels):
         (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
 
 
-def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_image):
+def _sample_rois(all_rois, all_scores, gt_boxes, gt_phrases, fg_rois_per_image, rois_per_image):
     """Generate a random sample of RoIs comprising foreground and background
   examples.
   """
@@ -106,6 +108,7 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
     gt_assignment = overlaps.argmax(axis=1)
     max_overlaps = overlaps.max(axis=1)
     labels = gt_boxes[gt_assignment, 4]
+    phrases = gt_phrases[gt_assignment]
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
     fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
@@ -137,8 +140,10 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
     keep_inds = np.append(fg_inds, bg_inds)
     # Select sampled values from various arrays:
     labels = labels[keep_inds]
+    phrases = phrases[keep_inds]
     # Clamp labels for the background RoIs to 0
     labels[int(fg_rois_per_image):] = 0
+    phrases[int(fg_rois_per_image):, :] = 0
     rois = all_rois[keep_inds]
     roi_scores = all_scores[keep_inds]
 
@@ -148,4 +153,4 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
     bbox_targets, bbox_inside_weights = \
         _get_bbox_regression_labels(bbox_target_data)
 
-    return labels, rois, roi_scores, bbox_targets, bbox_inside_weights
+    return labels, rois, roi_scores, bbox_targets, bbox_inside_weights, phrases

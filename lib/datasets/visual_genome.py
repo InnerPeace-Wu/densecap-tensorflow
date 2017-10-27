@@ -153,11 +153,11 @@ class visual_genome(imdb):
             return roidb
 
         gt_roidb = [self._load_vg_annotation(index) for index in self._image_index]
-        # TODO: clear stuff
-        # gt_phrases = {}
-        # for k, v in six.iteritems(self._gt_regions):
-        #     for reg in v['regions']:
-        #         gt_phrases[reg['region_id']] = self._line_to_stream(reg['phrase_tokens'])
+        # TODO: clear test codes
+        gt_phrases = {}
+        for k, v in six.iteritems(self._gt_regions):
+            for reg in v['regions']:
+                gt_phrases[reg['region_id']] = self._line_to_stream(reg['phrase_tokens'])
         #
         #         if DEBUG:
         #             # CHECK consistency
@@ -167,8 +167,8 @@ class visual_genome(imdb):
         #                 assert (vocab_w == UNK_IDENTIFIER or vocab_w == w)
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
-        # with open(cache_file_phrases, 'wb') as fid:
-        #     cPickle.dump(gt_phrases, fid, cPickle.HIGHEST_PROTOCOL)
+        with open(cache_file_phrases, 'wb') as fid:
+            cPickle.dump(gt_phrases, fid, cPickle.HIGHEST_PROTOCOL)
         print('wrote gt roidb to {}'.format(cache_file))
         # print('wrote gt phrases to {}'.format(cache_file_phrases))
         return gt_roidb
@@ -322,10 +322,10 @@ class visual_genome(imdb):
 
 if __name__ == '__main__':
     # TODO: delete testing option
-    # cfg.LIMIT_RAM = False
+    cfg.LIMIT_RAM = False
     d = visual_genome('pre', '1.2')
     # d = visual_genome('train', '1.2')
     res = d.roidb
-    from IPython import embed;
+    # from IPython import embed;
 
-    embed()
+    # embed()

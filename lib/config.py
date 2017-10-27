@@ -285,6 +285,9 @@ __C.DEBUG_ALL = True
 # maximum words for training and testing
 __C.MAX_WORDS = 10
 
+# Default GPU device id
+__C.GPU_ID = 0
+
 
 #
 # Functions

@@ -32,8 +32,10 @@ def pickle_test():
     print(data_flip)
     print ('ori------------------')
     print(data_ori)
+    print("data ori length:", len(data_ori))
     print ('phrase------------------')
     print (data_phra)
+    # print (data_phra[2239])
 
 
 if __name__ == '__main__':

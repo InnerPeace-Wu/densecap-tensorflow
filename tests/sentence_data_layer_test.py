@@ -15,13 +15,10 @@ import numpy as np
 
 def sentence_data_layer_test():
     data = get_data_test()
-    if cfg.LIMIT_RAM:
-        phrases = data['gt_phrases']
-    else:
-        phrases = None
+    phrases = data['gt_phrases']
 
-    labels = np.arange(1382, 1385)
-    sentence_data_layer(labels, split='pre', gt_phrases=phrases)
+    labels = data['gt_boxes'][:3, 4]
+    sentence_data_layer(labels, phrases)
 
 
 if __name__ == '__main__':

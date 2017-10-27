@@ -1,0 +1,29 @@
+data_path: /home/joe/git/visual_genome_test/1.2
+Appending horizontally-flipped training examples...
+pre gt roidb loaded from /home/joe/git/visual_genome_test/1.2/pre_gt_roidb.pkl
+done
+Preparing training data...
+done
+Filtered 0 roidb entries: 4 -> 4
+length of labels, i.e. number of regions: 262
+sentence data layer input (first 3)
+1382.0 [  4  33   6  25  20 144   0   0   0   0]
+1383.0 [167   6  30   4  11   0   0   0   0   0]
+1384.0 [ 7  6 21 72  0  0  0  0  0  0]
+sentence data layer output (first 3)
+input sentence
+[[   1.    4.   33.    6.   25.   20.  144.    0.    0.    0.    0.]
+ [   1.  167.    6.   30.    4.   11.    0.    0.    0.    0.    0.]
+ [   1.    7.    6.   21.   72.    0.    0.    0.    0.    0.    0.]]
+target sentence
+[[   1.    4.   33.    6.   25.   20.  144.    2.    0.    0.    0.    0.]
+ [   1.  167.    6.   30.    4.   11.    2.    0.    0.    0.    0.    0.]
+ [   1.    7.    6.   21.   72.    2.    0.    0.    0.    0.    0.    0.]]
+cont sentence
+[[ 0.  1.  1.  1.  1.  1.  1.  1.  0.  0.  0.  0.]
+ [ 0.  1.  1.  1.  1.  1.  1.  0.  0.  0.  0.  0.]
+ [ 0.  1.  1.  1.  1.  1.  0.  0.  0.  0.  0.  0.]]
+cont bbox
+[[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.  0.  0.]
+ [ 0.  0.  0.  0.  0.  0.  1.  0.  0.  0.  0.  0.]
+ [ 0.  0.  0.  0.  0.  1.  0.  0.  0.  0.  0.  0.]]

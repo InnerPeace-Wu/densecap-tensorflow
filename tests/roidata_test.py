@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 from six.moves import xrange
 
-cfg.LIMIT_RAM = True
+# cfg.LIMIT_RAM = False
 DEFAULT_PATH = '/home/joe/git/visual_genome_test/1.2'
 
 
@@ -74,9 +74,8 @@ def vis_regions(im, regions, phrases=None, path='/home/joe/git/VG_raw_data/image
             break
         bbox = regions[i, :4]
         region_id = regions[i, 4]
-        if cfg.LIMIT_RAM:
-            # position 0,1,2 have been taken
-            caption = ' '.join([vocab[j - 3] for j in phrases[i]])
+        # position 0,1,2 have been taken
+        caption = ' '.join([vocab[j - 3] if j-3>=0 else "" for j in phrases[i]])
         im_new = np.copy(im)
         cv2.rectangle(im_new, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 0, 255), 2)
         cv2.imwrite('%s/%s.jpg' % (path, caption), im_new)
@@ -88,7 +87,7 @@ def get_data_test():
     else:
         roidb = get_training_roidb(imdb)
         roidb = filter_roidb(roidb)
-    rdata = RoIDataLayer(roidb, num_classes=2)
+    rdata = RoIDataLayer(roidb)
     data = rdata.forward()
 
     return data
@@ -101,10 +100,10 @@ if __name__ == '__main__':
     else:
         roidb = get_training_roidb(imdb)
         roidb = filter_roidb(roidb)
-    rdata = RoIDataLayer(roidb, num_classes=2)
+    rdata = RoIDataLayer(roidb)
     data = rdata.forward()
     # data = rdata.forward()
-    # print(data)
+    print(data)
     regions = data['gt_boxes']
     im = data['data'][0]
     phrases = data['gt_phrases']

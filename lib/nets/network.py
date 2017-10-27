@@ -40,6 +40,26 @@ class Network(object):
         self._event_summaries = {}
         self._variables_to_fix = {}
 
+        self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
+        self._im_info = tf.placeholder(tf.float32, shape=[3])
+        self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
+        # add 2 for: <SOS> and <EOS>
+        self._gt_phrases = tf.placeholder(tf.int32, shape=[None, cfg.MAX_WORDS])
+
+        self._anchor_scales = cfg.ANCHOR_SCALES
+        self._num_scales = len(self._anchor_scales)
+
+        self._anchor_ratios = cfg.ANCHOR_RATIOS
+        self._num_ratios = len(self._anchor_ratios)
+
+        self._num_anchors = self._num_scales * self._num_ratios
+
+        if cfg.DEBUG_ALL:
+            self._for_debug = {}
+            self._tag = 'pre'
+            self._mode = 'TRAIN'
+            self._num_classes = 1
+
     def _add_gt_image(self):
         # add back mean
         image = self._image + cfg.PIXEL_MEANS
@@ -108,6 +128,10 @@ class Network(object):
             rois.set_shape([None, 5])
             rpn_scores.set_shape([None, 1])
 
+            if cfg.DEBUG_ALL:
+                self._for_debug['proposal_rois'] = rois
+                self._for_debug['proposal_rpn_scores'] = rpn_scores
+
         return rois, rpn_scores
 
     # Only use it if you have roi_pooling op written in tf.image
@@ -163,6 +187,12 @@ class Network(object):
 
             self._score_summaries.update(self._anchor_targets)
 
+        if cfg.DEBUG_ALL:
+            self._for_debug['rpn_labels'] = rpn_labels
+            self._for_debug['rpn_bbox_targets'] = rpn_bbox_targets
+            self._for_debug['rpn_bbox_inside_weights'] = rpn_bbox_inside_weights
+            self._for_debug['rpn_bbox_outside_weights'] = rpn_bbox_outside_weights
+
         return rpn_labels
 
     # TODO: about to delete
@@ -196,15 +226,17 @@ class Network(object):
 
         with tf.variable_scope(name) as scope:
             rois, roi_scores, labels, bbox_targets, \
-            bbox_inside_weights, bbox_outside_weights, clss = tf.py_func(
+            bbox_inside_weights, bbox_outside_weights, clss, phrases = tf.py_func(
                 proposal_target_single_class_layer,
-                [rois, roi_scores, self._gt_boxes],
-                [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+                [rois, roi_scores, self._gt_boxes, self._gt_phrases],
+                [tf.float32, tf.float32, tf.float32, tf.float32,
+                 tf.float32, tf.float32, tf.float32, tf.int32],
                 name="proposal_target_single_class")
 
             rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
             roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
-            labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+            labels.set_shape([cfg.TRAIN.BATCH_SIZE, ])
+            phrases.set_shape([cfg.TRAIN.BATCH_SIZE, cfg.MAX_WORDS])
             bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
             bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
             bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
@@ -213,13 +245,23 @@ class Network(object):
             self._proposal_targets['rois'] = rois
             self._proposal_targets['labels'] = tf.to_int32(labels, name="to_int32")
             self._proposal_targets['clss'] = tf.to_int32(clss, name="to_int32")
+            self._proposal_targets['phrases'] = phrases
             self._proposal_targets['bbox_targets'] = bbox_targets
             self._proposal_targets['bbox_inside_weights'] = bbox_inside_weights
             self._proposal_targets['bbox_outside_weights'] = bbox_outside_weights
 
             self._score_summaries.update(self._proposal_targets)
 
-            return rois, labels
+            if cfg.DEBUG_ALL:
+                self._for_debug['rois'] = rois
+                self._for_debug['labels'] = tf.to_int32(labels, name="to_int32")
+                self._for_debug['clss'] = tf.to_int32(clss, name="to_int32")
+                self._for_debug['phrases'] = phrases
+                self._for_debug['bbox_targets'] = bbox_targets
+                self._for_debug['bbox_inside_weights'] = bbox_inside_weights
+                self._for_debug['bbox_outside_weights'] = bbox_outside_weights
+
+            return rois, labels, phrases
 
     def _sentence_data_layer(self, name,
                              time_steps=cfg.TIME_STEPS, mode='concat'):
@@ -228,20 +270,26 @@ class Network(object):
         with tf.variable_scope(name) as scope:
             input_sentence, target_sentence, cont_sentence, cont_bbox = \
             tf.py_func(sentence_data_layer,
-                       [self._roi_labels, time_steps, mode, self._gt_phrases],
+                       [self._roi_labels, self._roi_phrases, time_steps, mode],
                        [tf.float32, tf.float32, tf.float32, tf.float32],
                        name='sentence_data')
 
-            input_sentence.set_shape([-1, num_regions])
-            target_sentence.set_shape([-1, num_regions])
-            cont_sentence.set_shape([-1, num_regions])
-            cont_bbox.set_shape([-1, num_regions])
+            input_sentence.set_shape([num_regions, cfg.TIME_STEPS])
+            target_sentence.set_shape([ num_regions, cfg.TIME_STEPS])
+            cont_sentence.set_shape([ num_regions, cfg.TIME_STEPS])
+            cont_bbox.set_shape([ num_regions, cfg.TIME_STEPS])
 
             self._sentence_data = {}
             self._sentence_data['input_sentence'] = input_sentence
             self._sentence_data['target_sentence'] = target_sentence
             self._sentence_data['cont_sentence'] = cont_sentence
             self._sentence_data['cont_bbox'] = cont_bbox
+
+            if cfg.DEBUG_ALL:
+                self._for_debug['input_sentence'] = input_sentence
+                self._for_debug['target_sentence'] = target_sentence
+                self._for_debug['cont_sentence'] = cont_sentence
+                self._for_debug['cont_bbox'] = cont_bbox
 
         return input_sentence
 
@@ -258,6 +306,9 @@ class Network(object):
             anchor_length.set_shape([])
             self._anchors = anchors
             self._anchor_length = anchor_length
+
+        if cfg.DEBUG_ALL:
+            self._for_debug['anchors'] = anchors
 
     def _build_network(self, is_training=True):
         # select initializers
@@ -284,14 +335,19 @@ class Network(object):
                 raise NotImplementedError
 
             # sentence data layer
+            input_sentence = self._sentence_data_layer('sententce_data')
 
         fc7 = self._head_to_tail(pool5, is_training)
         with tf.variable_scope(self._scope, self._scope):
             # region classification
             cls_prob = self._region_classification(fc7, is_training,
-                                                   initializer, initializer_bbox)
+                                                   initializer)
 
         self._score_summaries.update(self._predictions)
+
+        if cfg.DEBUG_ALL:
+            self._for_debug['pool5'] = pool5
+            self._for_debug['cls_prob'] = cls_prob
 
         return rois, cls_prob
 
@@ -377,8 +433,9 @@ class Network(object):
             # Try to have a deterministic order for the computing graph, for reproducibility
             with tf.control_dependencies([rpn_labels]):
                 # rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
-                rois, labels = self._proposal_target_single_class_layer(rois, roi_scores, "rpn_rois")
+                rois, labels, phrases = self._proposal_target_single_class_layer(rois, roi_scores, "rpn_rois")
                 self._roi_labels = labels
+                self._roi_phrases = phrases
         else:
             if cfg.TEST.MODE == 'nms':
                 rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
@@ -394,6 +451,13 @@ class Network(object):
         self._predictions["rpn_bbox_pred"] = rpn_bbox_pred
         self._predictions["rois"] = rois
 
+        if cfg.DEBUG_ALL:
+            self._for_debug['rpn'] = rpn
+            self._for_debug['rpn_cls_score'] = rpn_cls_score
+            self._for_debug['rpn_cls_prob'] = rpn_cls_prob
+            self._for_debug['rpn_cls_prob_reshape'] = rpn_cls_prob_reshape
+            self._for_debug['rpn_cls_score_reshape'] = rpn_cls_score_reshape
+            self._for_debug['rpn_bbox_pred'] = rpn_bbox_pred
         return rois
 
     # TODO: clear stuff
@@ -424,23 +488,12 @@ class Network(object):
         raise NotImplementedError
 
     def create_architecture(self, mode, num_classes=1, tag=None,
-                            anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):
-        self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
-        self._im_info = tf.placeholder(tf.float32, shape=[3])
-        self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
-        # add 2 for: <SOS> and <EOS>
-        self._gt_phrases = tf.placeholder(tf.int32, shape=[None, cfg.MAX_WORDS])
+                            ):
         self._tag = tag
 
         self._num_classes = num_classes
         self._mode = mode
-        self._anchor_scales = anchor_scales
-        self._num_scales = len(anchor_scales)
 
-        self._anchor_ratios = anchor_ratios
-        self._num_ratios = len(anchor_ratios)
-
-        self._num_anchors = self._num_scales * self._num_ratios
 
         training = mode == 'TRAIN'
         testing = mode == 'TEST'

@@ -21,23 +21,16 @@ from six.moves import xrange
 DEBUG = True
 
 
-def sentence_data_layer(labels, gt_phrases, time_steps=12, mode='concat'):
+def sentence_data_layer(labels, roi_phrases, time_steps=12, mode='concat'):
     all_modes = ('repeat', 'concat')
     assert (mode in all_modes), "Wrong type of mode which should be 'repeat' or 'concat'"
 
     if DEBUG:
-        # if cfg.LIMIT_RAM:
-        #     _phrases = gt_phrases
-        # else:
-        #     phrase_path = '%s/%s_gt_phrases.pkl' % (cfg.CACHE_DIR, split.lower())
-        #     _phrases = cPickle.load(open(phrase_path, 'rb'))
-        all_len = [len(stream) for stream in gt_phrases]
-        count_len = Counter(all_len)
-        print('Distribution of caption length')
-        print(count_len)
+        print('length of labels, i.e. number of regions: {}'.format(len(roi_phrases)))
 
     # all_regions is a dict from region id to caption stream
     assert len(labels.shape) == 1, 'Pleace check the shape of "label"'
+
     num_regions = labels.shape[0]
     if mode == 'repeat':
         input_sentence = np.zeros((num_regions, time_steps), dtype=np.float32)
@@ -48,7 +41,7 @@ def sentence_data_layer(labels, gt_phrases, time_steps=12, mode='concat'):
     cont_sentence = np.zeros((num_regions, time_steps), dtype=np.float32)
     cont_bbox = np.zeros((num_regions, time_steps), dtype=np.float32)
     for i in xrange(num_regions):
-        stream = get_streams(gt_phrases, int(labels[i]), time_steps, mode)
+        stream = get_streams(roi_phrases[i], int(labels[i]), time_steps, mode)
         input_sentence[i, :] = stream['input_sentence']
         target_sentence[i, :] = stream['target_sentence']
         cont_sentence[i, :] = stream['cont_sentence']
@@ -57,11 +50,15 @@ def sentence_data_layer(labels, gt_phrases, time_steps=12, mode='concat'):
     if DEBUG:
         print('sentence data layer input (first 3)')
         for ix, l in enumerate(labels[:3]):
-            print(l, gt_phrases[ix])
+            print(l, roi_phrases[ix])
         print('sentence data layer output (first 3)')
+        print('input sentence')
         print(input_sentence[:3, :])
+        print('target sentence')
         print(target_sentence[:3, :])
+        print('cont sentence')
         print(cont_sentence[:3, :])
+        print('cont bbox')
         print(cont_bbox[:3, :])
 
     return input_sentence, target_sentence, cont_sentence, cont_bbox
@@ -72,12 +69,13 @@ def get_streams(phrases, region_id, time_steps=12, mode='concat'):
     if mode == 'repeat':
         # Image features repeated at each time step
         if region_id > 0:
-            stream = phrases[region_id]
+            stream = phrases[:np.sum(phrases > 0)]
+            stream = stream.tolist()
             pad = time_steps - (len(stream) + 1)
             out = {}
             out['cont_sentence'] = [0] + [1] * len(stream) + [0] * pad
-            out['input_sentence'] = [0] + stream + [-1] * pad
-            out['target_sentence'] = stream + [0] + [-1] * pad
+            out['input_sentence'] = [1] + stream + [0] * pad
+            out['target_sentence'] = stream + [2] + [0] * pad
             # only make prediction at the last time step for bbox
             out['cont_bbox'] = [0] * len(stream) + [1] + [0] * pad
 
@@ -88,19 +86,21 @@ def get_streams(phrases, region_id, time_steps=12, mode='concat'):
             # negative sample, no phrase related
             out = {}
             out['cont_sentence'] = [0] * time_steps
-            out['input_sentence'] = [-1] * time_steps
-            out['target_sentence'] = [-1] * time_steps
+            out['input_sentence'] = [0] * time_steps
+            out['target_sentence'] = [0] * time_steps
             out['cont_bbox'] = [0] * time_steps
 
     elif mode == 'concat':
         # Image feature concatenated to the first time step
         if region_id > 0:
-            stream = phrases[region_id]
+            # stream = phrases[region_id]
+            stream = phrases[:np.sum(phrases > 0)]
+            stream = stream.tolist()
             pad = time_steps - (len(stream) + 2)
             out = {}
             out['cont_sentence'] = [0] + [1] * (len(stream) + 1) + [0] * pad
-            out['input_sentence'] = [0] + stream + [-1] * pad
-            out['target_sentence'] = [-1] + stream + [0] + [-1] * pad
+            out['input_sentence'] = [1] + stream + [0] * pad
+            out['target_sentence'] = [1] + stream + [2] + [0] * pad
             # only make prediction at the last time step for bbox
             out['cont_bbox'] = [0] * (len(stream) + 1) + [1] + [0] * pad
 
@@ -111,18 +111,19 @@ def get_streams(phrases, region_id, time_steps=12, mode='concat'):
             # negative sample, no phrase related
             out = {}
             out['cont_sentence'] = [0] * time_steps
-            out['input_sentence'] = [-1] * (time_steps - 1)
-            out['target_sentence'] = [-1] * time_steps
+            out['input_sentence'] = [0] * (time_steps - 1)
+            out['target_sentence'] = [0] * time_steps
             out['cont_bbox'] = [0] * time_steps
     else:
         # Global feature and region feature concatenated to the first time step
         if region_id > 0:
             stream = phrases[region_id]
+            stream = stream.tolist()
             pad = time_steps - (len(stream) + 3)
             out = {}
             out['cont_sentence'] = [0] + [1] * (len(stream) + 2) + [0] * pad
-            out['input_sentence'] = [0] + stream + [-1] * pad
-            out['target_sentence'] = [-1, -1]  + stream + [0] + [-1] * pad
+            out['input_sentence'] = [1] + stream + [0] * pad
+            out['target_sentence'] = [1, 1] + stream + [2] + [0] * pad
             # only make prediction at the last time step for bbox
             out['cont_bbox'] = [0] * (len(stream) + 2) + [1] + [0] * pad
 
@@ -133,8 +134,8 @@ def get_streams(phrases, region_id, time_steps=12, mode='concat'):
             # negative sample, no phrase related
             out = {}
             out['cont_sentence'] = [0] * time_steps
-            out['input_sentence'] = [-1] * (time_steps - 2)
-            out['target_sentence'] = [-1] * time_steps
+            out['input_sentence'] = [0] * (time_steps - 2)
+            out['target_sentence'] = [0] * time_steps
             out['cont_bbox'] = [0] * time_steps
 
     return out

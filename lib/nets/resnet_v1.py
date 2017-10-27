@@ -113,6 +113,9 @@ class resnetv1(Network):
         self._act_summaries.append(net_conv)
         self._layers['head'] = net_conv
 
+        if cfg.DEBUG_ALL:
+            self._for_debug['head'] = net_conv
+
         return net_conv
 
     # not used.
@@ -126,6 +129,9 @@ class resnetv1(Network):
                                          scope=self._scope)
             # average pooling done by reduce_mean
             fc7 = tf.reduce_mean(fc7, axis=[1, 2])
+        if cfg.DEBUG_ALL:
+            self._for_debug['fc7'] = fc7
+
         return fc7
 
     def _decide_blocks(self):

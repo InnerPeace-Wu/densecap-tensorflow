@@ -44,7 +44,7 @@
 {
 'gt_classes': array([1382, 1383, ..., 4090, 4091], dtype=int32), 
 'flipped': False, 
-'gt_phrases': {1536: [3, 10, 20, 8, 6, 2, 9], 3584: [36, 38, 29, 17, 2, 37], ...},
+'gt_phrases': [[4, 33, 6, 25, 20, 144], [167, 6, 30, 4, 11], [7, 6, 21, 72],...],
 'boxes': array([[421,  57, 503, 196],
                 [194, 372, 376, 481],
                 [241, 491, 302, 521],
@@ -76,7 +76,7 @@ stream = [s + 1 for s in stream]
 {
 'gt_classes': array([1382, 1383, ..., 4090, 4091], dtype=int32), 
 'flipped': True, 
-'gt_phrases': {1536: [3, 10, 20, 8, 6, 2, 9], 3584: [36, 38, 29, 17, 2, 37], ...},
+'gt_phrases': [[4, 33, 6, 25, 20, 144], [167, 6, 30, 4, 11], [7, 6, 21, 72],...],
 'boxes': array([[296,  57, 378, 196],
                 [423, 372, 605, 481],
                 [497, 491, 558, 521],
@@ -107,11 +107,13 @@ stream = [s + 1 for s in stream]
                 [241, 491, 302, 521],
                 ...], dtype=uint16),
 'seg_areas': array([  11620.,   20130.,    1922., ...], dtype=float32), 
+'gt_phrases': [[4, 33, 6, 25, 20, 144], [167, 6, 30, 4, 11], [7, 6, 21, 72],...],
 'gt_overlaps': <262x2 sparse matrix of type '<type 'numpy.float32'>'
                with 262 stored elements in Compressed Sparse Row format>}
 }
 ```
 
+**DO NOT HAVE ALL_PHRASES**
 * UNLIMIT_RAM exampl: 
 
 ```python
@@ -141,7 +143,43 @@ stream = [s + 1 for s in stream]
                   [-18.94306374, -32.79834747, -13.62355137],
                   [-11.24244404, -24.31069756,  -5.66058874],...]]], dtype=float32),
  'im_info': array([[ 540.        ,  720.        ,    0.89999998]], dtype=float32),
- 'gt_phrases': {1536: [3, 10, 20, 8, 6, 2, 9], 3584: [36, 38, 29, 17, 2, 37], ...}
+ 'gt_phrases': array([[  4,  33,   6, ...,   0,   0,   0],
+                      [167,   6,  30, ...,   0,   0,   0],
+                      [  7,   6,  21, ...,   0,   0,   0],...]
 }             
 ```
-  
+
+## Sentence data layer
+
+Output of first 3 regions of 1.jpg:
+
+```python
+# length of labels, i.e. number of regions: 262
+# sentence data layer input (first 3)
+1382.0 [  4  33   6  25  20 144   0   0   0   0]
+1383.0 [167   6  30   4  11   0   0   0   0   0]
+1384.0 [ 7  6 21 72  0  0  0  0  0  0]
+# sentence data layer output (first 3)
+# input sentence
+[[   1.    4.   33.    6.   25.   20.  144.    0.    0.    0.    0.]
+ [   1.  167.    6.   30.    4.   11.    0.    0.    0.    0.    0.]
+ [   1.    7.    6.   21.   72.    0.    0.    0.    0.    0.    0.]]
+target sentence
+[[   1.    4.   33.    6.   25.   20.  144.    2.    0.    0.    0.    0.]
+ [   1.  167.    6.   30.    4.   11.    2.    0.    0.    0.    0.    0.]
+ [   1.    7.    6.   21.   72.    2.    0.    0.    0.    0.    0.    0.]]
+# cont sentence
+[[ 0.  1.  1.  1.  1.  1.  1.  1.  0.  0.  0.  0.]
+ [ 0.  1.  1.  1.  1.  1.  1.  0.  0.  0.  0.  0.]
+ [ 0.  1.  1.  1.  1.  1.  0.  0.  0.  0.  0.  0.]]
+# cont bbox
+[[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.  0.  0.]
+ [ 0.  0.  0.  0.  0.  0.  1.  0.  0.  0.  0.  0.]
+ [ 0.  0.  0.  0.  0.  1.  0.  0.  0.  0.  0.  0.]]
+```
+
+## Embedding
+
+* index `0` will be the `<pad>` character
+* index `1` will be the `<SOS>` character
+* index `2` will be the `<EOS>` character
