@@ -118,19 +118,20 @@ class resnetv1(Network):
 
         return net_conv
 
-    # not used.
     def _head_to_tail(self, pool5, is_training, reuse=None):
         with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
-            fc7, _ = resnet_v1.resnet_v1(pool5,
+            fc7_bef_pool, _ = resnet_v1.resnet_v1(pool5,
                                          self._blocks[-1:],
                                          global_pool=False,
                                          include_root_block=False,
                                          reuse=reuse,
                                          scope=self._scope)
             # average pooling done by reduce_mean
-            fc7 = tf.reduce_mean(fc7, axis=[1, 2])
+            fc7 = tf.reduce_mean(fc7_bef_pool, axis=[1, 2])
+
         if cfg.DEBUG_ALL:
             self._for_debug['fc7'] = fc7
+            self._for_debug['fc7_before_pool'] = fc7_bef_pool
 
         return fc7
 

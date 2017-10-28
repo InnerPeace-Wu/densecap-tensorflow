@@ -28,6 +28,10 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
     rpn_bbox_pred = rpn_bbox_pred.reshape((-1, 4))
     scores = scores.reshape((-1, 1))
     proposals = bbox_transform_inv(anchors, rpn_bbox_pred)
+    if cfg.DEBUG_ALL:
+        print ('number of proposals before clip boxes to image board: {}'.format(
+            proposals.shape[0]
+        ))
     proposals = clip_boxes(proposals, im_info[:2])
 
     # remove predicted boxes with either height or width < threshold
@@ -46,7 +50,11 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
     scores = scores[order]
 
     # Non-maximal suppression
+    if cfg.DEBUG_ALL:
+        print("number of proposals before nms: {}".format(proposals.shape[0]))
     keep = nms(np.hstack((proposals, scores)), nms_thresh)
+    if cfg.DEBUG_ALL:
+        print("number of proposals after nms: {}".format(len(keep)))
 
     # Pick th top region proposals after NMS
     if post_nms_topN > 0:

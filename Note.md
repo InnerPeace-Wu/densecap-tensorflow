@@ -1,6 +1,8 @@
 ## TODO
 
 - [x] set logging in bash, one have to build the directory fist.
+- [ ] check out the dropout using in fc7
+- [ ] consider add dropout in embedding layer
 
 ## Data Preprocessing
 
@@ -183,3 +185,54 @@ target sentence
 * index `0` will be the `<pad>` character
 * index `1` will be the `<SOS>` character
 * index `2` will be the `<EOS>` character
+
+
+## Architecture test
+
+image:  (1, 540, 720, 3)  
+head:   (1, 34, 45, 1024)  
+rpn:    (1, 34 ,45, 512)  
+rpn_cls_score:  (1, 34, 45, 24) #2 x 3 x 4  
+rpn_cls_score_reshape:  (1, 34x12, 45, 2)  
+rpn_cls_prob_reshape:  (1, 34x12, 45, 2)   
+rpn_cls_prob:  (1, 34, 45, 24) #2 x 3 x 4  
+rpn_bbox_pred:  (1, 34, 45, 48)  
+anchors  ==> (18360, 4)  
+**proposal layer**  
+proposal_rois:  (9, 5) #due to NMS, it's a heavy reduce to proposals.  
+proposal_rpn_scores: (9, 1)  
+**anchor target layer**  
+rpn_labels:  (1, 1, 408, 45)  
+rpn_bbox_targets: (1, 34, 45, 48)  
+rpn_bbox_inside_weights: (1, 34, 45, 48)  
+rpn_bbox_outside_weights: (1, 34, 45, 48)  
+**proposal_targets_single_class_layer**  
+make sure a fixed number of regions are sampled.  
+rois: (256, 5)  
+labels   ==> (256,)  
+clss  ==> (256,)  
+phrases  ==> (256, 10)  
+bbox_targets  ==> (256, 4)  
+bbox_inside_weights  ==> (256, 4)  
+bbox_outside_weights ==> (256, 4)   
+**RPN**  
+pool5  ==> (256, 7, 7, 1024)  
+fc7    ==> (256, 2048)  
+name: fc7_before_pool               ==> (256, 7, 7, 2048)  
+cls_prob   ==> (256, 2)  
+**sentence data layer**  
+input_sentence  ==> (256, 11)  
+target_sentence  ==> (256, 12)  
+cont_bbox   ==> (256, 12)  
+cont_sentence  ==> (256, 12)  
+**embed_caption_layer**  
+name: embedding               ==> (10003, 512)
+name: embed_input_sentence               ==> (256, 11, 512)
+name: fc8               ==> (256, 512)
+name: im_context               ==> (256, 1, 512)
+name: im_concat_words               ==> (256, 12, 512)
+name: captoin_outputs               ==> (256, 12, 512)
+name: loc_outputs               ==> (256, 12, 512)
+
+
+

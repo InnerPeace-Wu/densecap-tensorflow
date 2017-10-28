@@ -17,6 +17,7 @@ import numpy.random as npr
 from lib.config import cfg
 from lib.fast_rcnn.bbox_transform import bbox_transform
 from lib.utils.cython_bbox import bbox_overlaps
+from lib.layers.rois_offset_layer import compute_rois_offset
 
 
 def proposal_target_single_class_layer(rpn_rois, rpn_scores, gt_boxes, gt_phrases):
@@ -51,7 +52,7 @@ def proposal_target_single_class_layer(rpn_rois, rpn_scores, gt_boxes, gt_phrase
 
     rois = rois.reshape(-1, 5)
     roi_scores = roi_scores.reshape(-1)
-    labels = labels.reshape(-1, )
+    labels = labels.reshape(-1, 1)
     phrases = phrases.reshape(-1, cfg.MAX_WORDS)
     bbox_targets = bbox_targets.reshape(-1, 4)
     bbox_inside_weights = bbox_inside_weights.reshape(-1, 4)
@@ -149,6 +150,14 @@ def _sample_rois(all_rois, all_scores, gt_boxes, gt_phrases, fg_rois_per_image, 
 
     bbox_target_data = _compute_targets(
         rois[:, 1:5], gt_boxes[gt_assignment[keep_inds], :4], labels)
+
+    if cfg.DEBUG_ALL:
+        target_boxes = compute_rois_offset(rois[:, 1:5], bbox_target_data[:, 1:5])
+        match_boxes = gt_boxes[gt_assignment[keep_inds], :4]
+        print('boxes consistency check')
+        print(target_boxes[:2,:])
+        print(match_boxes[:2,:])
+        assert np.linalg.norm(target_boxes - match_boxes) < 0.01
 
     bbox_targets, bbox_inside_weights = \
         _get_bbox_regression_labels(bbox_target_data)

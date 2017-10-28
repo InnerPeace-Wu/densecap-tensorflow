@@ -9,7 +9,8 @@
 - [x] roi_data_layer & get data well prepared for feeding.
 - [x] proposal layer
 - [x] sentense data layer
-- [ ] embedding layer
+- [x] embedding layer
+- [ ] get loc loss and caption loss
 - [ ] context fusion
 
 

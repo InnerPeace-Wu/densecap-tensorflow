@@ -46,7 +46,7 @@ else:
     VG_REGION_PATH = '%s/%s/region_descriptions_test.json' % (VG_PATH, VG_VERSION)
 
 VG_METADATA_PATH = '%s/%s/image_data.json' % (VG_PATH, VG_VERSION)
-vocabulary_size = 10000  # 10497#from dense caption paper
+vocabulary_size = cfg.VOCAB_SIZE # 10497#from dense caption paper
 HAS_VOCAB = False
 # TODO: delete testing option
 OUTPUT_DIR = '/home/joe/git/visual_genome_test/%s' % VG_VERSION

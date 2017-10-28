@@ -288,6 +288,17 @@ __C.MAX_WORDS = 10
 # Default GPU device id
 __C.GPU_ID = 0
 
+# dimension of embedding
+__C.EMBED_DIM = 512
+
+# Size of vacabulary
+__C.VOCAB_SIZE = 10000
+
+# image context mode, 'concat' or 'repeat'
+# 'concat': concat context feature at the first time step during rnn.
+# 'repeat': repeat context feature at the every time step during rnn.
+__C.CONTEXT_MODE = 'concat'
+
 
 #
 # Functions

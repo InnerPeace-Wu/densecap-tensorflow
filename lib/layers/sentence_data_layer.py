@@ -29,7 +29,7 @@ def sentence_data_layer(labels, roi_phrases, time_steps=12, mode='concat'):
         print('length of labels, i.e. number of regions: {}'.format(len(roi_phrases)))
 
     # all_regions is a dict from region id to caption stream
-    assert len(labels.shape) == 1, 'Pleace check the shape of "label"'
+    assert len(labels.shape) == 2, 'Pleace check the shape of "label"'
 
     num_regions = labels.shape[0]
     if mode == 'repeat':
@@ -50,7 +50,7 @@ def sentence_data_layer(labels, roi_phrases, time_steps=12, mode='concat'):
     if DEBUG:
         print('sentence data layer input (first 3)')
         for ix, l in enumerate(labels[:3]):
-            print(l, roi_phrases[ix])
+            print(l[0], roi_phrases[ix])
         print('sentence data layer output (first 3)')
         print('input sentence')
         print(input_sentence[:3, :])

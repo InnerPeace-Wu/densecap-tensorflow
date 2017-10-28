@@ -11,6 +11,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.contrib.slim import losses
 from tensorflow.contrib.slim import arg_scope
+import tensorflow.contrib.rnn as rnn
 
 import numpy as np
 
@@ -235,7 +236,7 @@ class Network(object):
 
             rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
             roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
-            labels.set_shape([cfg.TRAIN.BATCH_SIZE, ])
+            labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
             phrases.set_shape([cfg.TRAIN.BATCH_SIZE, cfg.MAX_WORDS])
             bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
             bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
@@ -264,7 +265,7 @@ class Network(object):
             return rois, labels, phrases
 
     def _sentence_data_layer(self, name,
-                             time_steps=cfg.TIME_STEPS, mode='concat'):
+                             time_steps=cfg.TIME_STEPS, mode=cfg.CONTEXT_MODE):
 
         num_regions = self._roi_labels.shape[0]
         with tf.variable_scope(name) as scope:
@@ -273,11 +274,17 @@ class Network(object):
                        [self._roi_labels, self._roi_phrases, time_steps, mode],
                        [tf.float32, tf.float32, tf.float32, tf.float32],
                        name='sentence_data')
+            if cfg.CONTEXT_MODE == 'concat':
+                input_sentence.set_shape([num_regions, cfg.TIME_STEPS - 1])
+            elif cfg.CONTEXT_MODE == 'repeat':
+                input_sentence.set_shape([num_regions, cfg.TIME_STEPS])
 
-            input_sentence.set_shape([num_regions, cfg.TIME_STEPS])
             target_sentence.set_shape([ num_regions, cfg.TIME_STEPS])
             cont_sentence.set_shape([ num_regions, cfg.TIME_STEPS])
             cont_bbox.set_shape([ num_regions, cfg.TIME_STEPS])
+
+            input_sentence = tf.to_int32(input_sentence, name='to_int32')
+            target_sentence = tf.to_int32(target_sentence, name='to_int32')
 
             self._sentence_data = {}
             self._sentence_data['input_sentence'] = input_sentence
@@ -292,6 +299,55 @@ class Network(object):
                 self._for_debug['cont_bbox'] = cont_bbox
 
         return input_sentence
+
+    def _embed_caption_layer(self, fc7, input_sentence, initializer, is_training):
+        """
+        comput image context feature and embed input sentence,
+        do 'concat' or 'repeat' image feature
+        """
+        fc8_im_context = slim.fully_connected(fc7, cfg.EMBED_DIM,
+                                              weights_initializer=initializer,
+                                              trainable=is_training,
+                                              activation_fn=None, scope='fc8_im_context')
+        self._embedding = tf.get_variable("embedding",
+                                          # 0,1,2 for pad sos eof respectively.
+                                          [cfg.VOCAB_SIZE + 3, cfg.EMBED_DIM],
+                                          initializer=initializer,
+                                          trainable=is_training
+                                          )
+        embed_input_sentence = tf.nn.embedding_lookup(self._embedding,
+                                                      input_sentence)
+
+        if cfg.CONTEXT_MODE == 'concat':
+            im_context = tf.expand_dims(fc8_im_context, axis=1)
+            im_concat_words = tf.concat([im_context, embed_input_sentence], axis=1)
+        else:
+            raise NotImplementedError
+
+        location_lstm_cell = rnn.BasicLSTMCell(cfg.EMBED_DIM, forget_bias=1.0)
+        caption_lstm_cell = rnn.BasicLSTMCell(cfg.EMBED_DIM, forget_bias=1.0)
+        sequence_length = self._sequence_length(input_sentence)
+        caption_outputs, caption_states = tf.nn.dynamic_rnn(caption_lstm_cell, im_concat_words,
+                                                            sequence_length=sequence_length,
+                                                            dtype=tf.float32,
+                                                            scope='captoin_lstm')
+
+        loc_outputs, loc_states = tf.nn.dynamic_rnn(location_lstm_cell, im_concat_words,
+                                                    sequence_length=sequence_length,
+                                                    dtype=tf.float32,
+                                                    scope='location_lstm')
+
+        if cfg.DEBUG_ALL:
+            self._for_debug['embedding'] = self._embedding
+            self._for_debug['embed_input_sentence'] = embed_input_sentence
+            self._for_debug['fc8'] = fc8_im_context
+            self._for_debug['im_context'] = im_context
+            self._for_debug['im_concat_words'] = im_concat_words
+            self._for_debug['captoin_outputs'] = caption_outputs
+            self._for_debug['loc_outputs'] = loc_outputs
+
+    def _sequence_length(self, input_sentence):
+        return tf.reduce_sum(tf.cast(tf.cast(input_sentence, tf.bool), tf.int32), axis=1)
 
     def _anchor_component(self):
         with tf.variable_scope('ANCHOR_' + self._tag) as scope:
@@ -342,6 +398,7 @@ class Network(object):
             # region classification
             cls_prob = self._region_classification(fc7, is_training,
                                                    initializer)
+            self._embed_caption_layer(fc7, input_sentence, initializer, is_training)
 
         self._score_summaries.update(self._predictions)
 
@@ -375,7 +432,8 @@ class Network(object):
             rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score, rpn_select), [-1, 2])
             rpn_label = tf.reshape(tf.gather(rpn_label, rpn_select), [-1])
             rpn_cross_entropy = tf.reduce_mean(
-                tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
+                tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score,
+                                                               labels=rpn_label))
 
             # RPN, bbox loss
             rpn_bbox_pred = self._predictions['rpn_bbox_pred']
@@ -383,7 +441,8 @@ class Network(object):
             rpn_bbox_inside_weights = self._anchor_targets['rpn_bbox_inside_weights']
             rpn_bbox_outside_weights = self._anchor_targets['rpn_bbox_outside_weights']
             rpn_loss_box = self._smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
-                                                rpn_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
+                                                rpn_bbox_outside_weights,
+                                                sigma=sigma_rpn, dim=[1, 2, 3])
 
             # RCNN, class loss
             cls_score = self._predictions["cls_score"]

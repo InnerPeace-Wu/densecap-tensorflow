@@ -45,9 +45,9 @@ def architecture_test():
             print("name: {}               ==> {}".format(k, v.shape))
             # print("shape: {}".format(v.shape))
             if k == 'labels':
-                print(v)
+                # print(v)
                 # print("first 5 example:")
-                # print(v[:5])
+                print(v[:5])
 
 
 if __name__ == '__main__':
