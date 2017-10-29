@@ -1,4 +1,8 @@
 # --------------------------------------------------------
+# DenseCap-Tensorflow
+# Written by InnerPeace
+# This file is adapted from Linjie's work
+# --------------------------------------------------------
 # Tensorflow Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Xinlei Chen
@@ -234,14 +238,14 @@ class Network(object):
                  tf.float32, tf.float32, tf.float32, tf.int32],
                 name="proposal_target_single_class")
 
-            rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
-            roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
-            labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
-            phrases.set_shape([cfg.TRAIN.BATCH_SIZE, cfg.MAX_WORDS])
-            bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
-            bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
-            bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, 4])
-            clss.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+            rois.set_shape([None, 5])
+            roi_scores.set_shape([None])
+            labels.set_shape([None, 1])
+            phrases.set_shape([None, cfg.MAX_WORDS])
+            bbox_targets.set_shape([None, 4])
+            bbox_inside_weights.set_shape([None, 4])
+            bbox_outside_weights.set_shape([None, 4])
+            clss.set_shape([None, 1])
 
             self._proposal_targets['rois'] = rois
             self._proposal_targets['labels'] = tf.to_int32(labels, name="to_int32")
@@ -337,6 +341,27 @@ class Network(object):
                                                     dtype=tf.float32,
                                                     scope='location_lstm')
 
+        loc_out_slice = tf.slice(loc_outputs, [0, cfg.TIME_STEPS - 1, 0], [-1, 1, -1])
+        loc_out_slice = tf.squeeze(loc_out_slice, [1])
+        bbox_pred = slim.fully_connected(loc_out_slice, 4,
+                                         weights_initializer=initializer,
+                                         trainable=is_training,
+                                         activation_fn=None, scope='bbox_pred')
+
+        # OUT OF MEMORY ON GPU
+        # inv_embedding = tf.tile(tf.expand_dims(tf.transpose(self._embedding),
+        #                                        [0]),
+        #                         [tf.shape(caption_outputs)[0], 1, 1])
+        # predict_caption = tf.matmul(caption_outputs, inv_embedding)
+
+        predict_cap_reshape = tf.matmul(tf.reshape(caption_outputs, [-1, cfg.EMBED_DIM]),
+                                        tf.transpose(self._embedding))
+        predict_caption = tf.reshape(predict_cap_reshape,
+                                     [-1, cfg.TIME_STEPS, cfg.VOCAB_SIZE + 3])
+
+        self._predictions['bbox_pred'] = bbox_pred
+        self._predictions['predict_caption'] = predict_caption
+
         if cfg.DEBUG_ALL:
             self._for_debug['embedding'] = self._embedding
             self._for_debug['embed_input_sentence'] = embed_input_sentence
@@ -345,6 +370,9 @@ class Network(object):
             self._for_debug['im_concat_words'] = im_concat_words
             self._for_debug['captoin_outputs'] = caption_outputs
             self._for_debug['loc_outputs'] = loc_outputs
+            self._for_debug['loc_out_slice'] = loc_out_slice
+            self._for_debug['bbox_pred'] = bbox_pred
+            self._for_debug['predict_caption'] = predict_caption
 
     def _sequence_length(self, input_sentence):
         return tf.reduce_sum(tf.cast(tf.cast(input_sentence, tf.bool), tf.int32), axis=1)
@@ -370,13 +398,13 @@ class Network(object):
         # select initializers
         if cfg.TRAIN.WEIGHT_INITIALIZER == 'truncated':
             initializer = tf.truncated_normal_initializer(mean=0.0, stddev=0.01)
-            initializer_bbox = tf.truncated_normal_initializer(mean=0.0, stddev=0.001)
+            # initializer_bbox = tf.truncated_normal_initializer(mean=0.0, stddev=0.001)
         elif cfg.TRAIN.WEIGHT_INITIALIZER == 'normal':
             initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
-            initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
+            # initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
         else:
             initializer = tf.contrib.layers.xavier_initializer()
-            initializer_bbox = tf.contrib.layers.xavier_initializer()
+            # initializer_bbox = tf.contrib.layers.xavier_initializer()
 
         net_conv = self._image_to_head(is_training)
         with tf.variable_scope(self._scope, self._scope):
@@ -444,29 +472,46 @@ class Network(object):
                                                 rpn_bbox_outside_weights,
                                                 sigma=sigma_rpn, dim=[1, 2, 3])
 
-            # RCNN, class loss
+            # class loss
             cls_score = self._predictions["cls_score"]
-            label = tf.reshape(self._proposal_targets["labels"], [-1])
-            cross_entropy = tf.reduce_mean(
+            label = tf.reshape(self._proposal_targets["clss"], [-1])
+            clss_cross_entropy = tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
 
-            # RCNN, bbox loss
+            # bbox loss
             bbox_pred = self._predictions['bbox_pred']
             bbox_targets = self._proposal_targets['bbox_targets']
-            bbox_inside_weights = self._proposal_targets['bbox_inside_weights']
-            bbox_outside_weights = self._proposal_targets['bbox_outside_weights']
-            loss_box = self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
+            # bbox_inside_weights = self._proposal_targets['bbox_inside_weights']
+            # bbox_outside_weights = self._proposal_targets['bbox_outside_weights']
+            loss_box = self._smooth_l1_loss(bbox_pred, bbox_targets,
+                                            1., 1.)
 
-            self._losses['cross_entropy'] = cross_entropy
+            # caption loss
+            predict_caption = self._predictions['predict_caption']
+            target_sentence = self._sentence_data['target_sentence']
+            captoin_loss = tf.reduce_mean(
+                tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predict_caption,
+                                                               labels=target_sentence))
+
+            self._losses['clss_cross_entropy'] = clss_cross_entropy
             self._losses['loss_box'] = loss_box
             self._losses['rpn_cross_entropy'] = rpn_cross_entropy
             self._losses['rpn_loss_box'] = rpn_loss_box
+            self._losses['caption_loss'] = captoin_loss
 
-            loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+            loss = cfg.LOSS.CAP_W * captoin_loss \
+                   + cfg.LOSS.CLS_W * clss_cross_entropy \
+                   + cfg.LOSS.BBOX_W * loss_box \
+                   + cfg.LOSS.RPN_CLS_W * rpn_cross_entropy \
+                   + cfg.LOSS.RPN_BBOX_W * rpn_loss_box
             regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
             self._losses['total_loss'] = loss + regularization_loss
 
             self._event_summaries.update(self._losses)
+
+            if cfg.DEBUG_ALL:
+                self._for_debug['loss'] = loss
+                self._for_debug['total_loss'] = loss
 
         return loss
 
@@ -572,7 +617,7 @@ class Network(object):
                        weights_regularizer=weights_regularizer,
                        biases_regularizer=biases_regularizer,
                        biases_initializer=tf.constant_initializer(0.0)):
-            rois, cls_prob, bbox_pred = self._build_network(training)
+            rois, cls_prob = self._build_network(training)
 
         layers_to_output = {'rois': rois}
 
@@ -580,8 +625,10 @@ class Network(object):
             self._train_summaries.append(var)
 
         if testing:
-            stds = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS), (self._num_classes))
-            means = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_MEANS), (self._num_classes))
+            # stds = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS), (self._num_classes))
+            stds = np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS)
+            # means = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_MEANS), (self._num_classes))
+            means = np.array(cfg.TRAIN.BBOX_NORMALIZE_MEANS)
             self._predictions["bbox_pred"] *= stds
             self._predictions["bbox_pred"] += means
         else:

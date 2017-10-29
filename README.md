@@ -10,7 +10,8 @@
 - [x] proposal layer
 - [x] sentense data layer
 - [x] embedding layer
-- [ ] get loc loss and caption loss
+- [x] get loc loss and caption loss
+- [ ] overfit a mini-batch
 - [ ] context fusion
 
 

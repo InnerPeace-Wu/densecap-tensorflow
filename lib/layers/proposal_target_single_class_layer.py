@@ -119,23 +119,38 @@ def _sample_rois(all_rois, all_scores, gt_boxes, gt_phrases, fg_rois_per_image, 
                        (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
 
     # Small modification to the original version where we ensure a fixed number of regions are sampled
-    if fg_inds.size > 0 and bg_inds.size > 0:
-        fg_rois_per_image = min(fg_rois_per_image, fg_inds.size)
-        fg_inds = npr.choice(fg_inds, size=int(fg_rois_per_image), replace=False)
-        bg_rois_per_image = rois_per_image - fg_rois_per_image
-        to_replace = bg_inds.size < bg_rois_per_image
-        bg_inds = npr.choice(bg_inds, size=int(bg_rois_per_image), replace=to_replace)
-    elif fg_inds.size > 0:
-        to_replace = fg_inds.size < rois_per_image
-        fg_inds = npr.choice(fg_inds, size=int(rois_per_image), replace=to_replace)
-        fg_rois_per_image = rois_per_image
-    elif bg_inds.size > 0:
-        to_replace = bg_inds.size < rois_per_image
-        bg_inds = npr.choice(bg_inds, size=int(rois_per_image), replace=to_replace)
-        fg_rois_per_image = 0
+    if cfg.SAMPLE_NUM_FIXED_REGIONS:
+        if fg_inds.size > 0 and bg_inds.size > 0:
+            fg_rois_per_image = min(fg_rois_per_image, fg_inds.size)
+            fg_inds = npr.choice(fg_inds, size=int(fg_rois_per_image), replace=False)
+            bg_rois_per_image = rois_per_image - fg_rois_per_image
+            to_replace = bg_inds.size < bg_rois_per_image
+            bg_inds = npr.choice(bg_inds, size=int(bg_rois_per_image), replace=to_replace)
+        elif fg_inds.size > 0:
+            to_replace = fg_inds.size < rois_per_image
+            fg_inds = npr.choice(fg_inds, size=int(rois_per_image), replace=to_replace)
+            fg_rois_per_image = rois_per_image
+        elif bg_inds.size > 0:
+            to_replace = bg_inds.size < rois_per_image
+            bg_inds = npr.choice(bg_inds, size=int(rois_per_image), replace=to_replace)
+            fg_rois_per_image = 0
+        else:
+            import pdb
+            pdb.set_trace()
     else:
-        import pdb
-        pdb.set_trace()
+        # foreground RoIs
+        fg_rois_per_this_image = min(fg_rois_per_image, fg_inds.size)
+        # Sample foreground regions without replacement
+        if fg_inds.size > 0:
+            fg_inds = npr.choice(fg_inds, size=fg_rois_per_this_image, replace=False)
+
+        # Compute number of background RoIs to take from this image (guarding
+        # against there being fewer than desired)
+        bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
+        bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
+        # Sample background regions without replacement
+        if bg_inds.size > 0:
+            bg_inds = npr.choice(bg_inds, size=bg_rois_per_this_image, replace=False)
 
     # The indices that we're selecting (both fg and bg)
     keep_inds = np.append(fg_inds, bg_inds)

@@ -19,7 +19,8 @@ def architecture_test():
     blob = get_data_test()
 
     net = resnetv1(50)
-    net._build_network()
+    # net._build_network()
+    net.create_architecture(mode='TRAIN', tag='pre')
 
     tfconfig = tf.ConfigProto(allow_soft_placement=True)
     tfconfig.gpu_options.allow_growth = True
@@ -48,6 +49,8 @@ def architecture_test():
                 # print(v)
                 # print("first 5 example:")
                 print(v[:5])
+            if k == 'loss' or k == 'total_loss':
+                print(k, v)
 
 
 if __name__ == '__main__':

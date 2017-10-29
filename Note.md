@@ -226,13 +226,14 @@ target_sentence  ==> (256, 12)
 cont_bbox   ==> (256, 12)  
 cont_sentence  ==> (256, 12)  
 **embed_caption_layer**  
-name: embedding               ==> (10003, 512)
-name: embed_input_sentence               ==> (256, 11, 512)
-name: fc8               ==> (256, 512)
-name: im_context               ==> (256, 1, 512)
-name: im_concat_words               ==> (256, 12, 512)
-name: captoin_outputs               ==> (256, 12, 512)
-name: loc_outputs               ==> (256, 12, 512)
-
+name: embedding               ==> (10003, 512)  
+name: embed_input_sentence               ==> (256, 11, 512)  
+name: fc8               ==> (256, 512)  
+name: im_context               ==> (256, 1, 512)  
+name: im_concat_words               ==> (256, 12, 512)  
+name: captoin_outputs               ==> (256, 12, 512)  
+name: loc_outputs               ==> (256, 12, 512)  
+name: bbox_pred               ==> (256, 4)  
+name: predict_caption               ==> (256, 12, 10003)  
 
 

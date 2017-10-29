@@ -299,6 +299,29 @@ __C.VOCAB_SIZE = 10000
 # 'repeat': repeat context feature at the every time step during rnn.
 __C.CONTEXT_MODE = 'concat'
 
+# follow tf_faster_rcnn, sample a fixed number of regions
+__C.SAMPLE_NUM_FIXED_REGIONS = False
+
+#
+# LOSS options
+#
+
+__C.LOSS = edict()
+
+# weight of caption loss
+__C.LOSS.CAP_W = 1.
+
+# weight of final class loss
+__C.LOSS.CLS_W = 0.1
+
+# weight of bbox loss
+__C.LOSS.BBOX_W = 0.01
+
+# weight of rpn bbox loss
+__C.LOSS.RPN_BBOX_W = 0.05
+
+# weight of rpn class loss
+__C.LOSS.RPN_CLS_W = 0.1
 
 #
 # Functions
