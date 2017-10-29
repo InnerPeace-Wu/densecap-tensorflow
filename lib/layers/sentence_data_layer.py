@@ -25,7 +25,7 @@ def sentence_data_layer(labels, roi_phrases, time_steps=12, mode='concat'):
     all_modes = ('repeat', 'concat')
     assert (mode in all_modes), "Wrong type of mode which should be 'repeat' or 'concat'"
 
-    if DEBUG:
+    if cfg.DEBUG_ALL:
         print('length of labels, i.e. number of regions: {}'.format(len(roi_phrases)))
 
     # all_regions is a dict from region id to caption stream
@@ -47,7 +47,7 @@ def sentence_data_layer(labels, roi_phrases, time_steps=12, mode='concat'):
         cont_sentence[i, :] = stream['cont_sentence']
         cont_bbox[i, :] = stream['cont_bbox']
 
-    if DEBUG:
+    if cfg.DEBUG_ALL:
         print('sentence data layer input (first 3)')
         for ix, l in enumerate(labels[:3]):
             print(l[0], roi_phrases[ix])

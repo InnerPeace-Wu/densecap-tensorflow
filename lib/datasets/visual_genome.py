@@ -36,8 +36,8 @@ DEBUG = False
 USE_CACHE = True
 UNK_IDENTIFIER = '<unk>'
 # TODO: delete testing option
-# DEFAULT_PATH = '/home/joe/git/visual_genome'
-DEFAULT_PATH = '/home/joe/git/visual_genome_test'
+DEFAULT_PATH = '/home/joe/git/visual_genome'
+# DEFAULT_PATH = '/home/joe/git/visual_genome_test'
 
 
 class visual_genome(imdb):
@@ -66,9 +66,18 @@ class visual_genome(imdb):
 
         self._classes = ('__background__', '__foreground__')
 
-        # self._image_index = self._load_image_set_index()
         # TODO: delete testing option
-        self._image_index = [1, 2]
+        if image_set == 'pre':
+            self._image_index = [1, 2]
+        else:
+            self._image_index = self._load_image_set_index()
+        # test for overfitting a minibatch
+        if cfg.ALL_TEST:
+            if image_set == 'train':
+                self._image_index = self._image_index[:cfg.ALL_TEST_NUM_TRAIN]
+            elif image_set == 'val':
+                self._image_index = self._image_index[:cfg.ALL_TEST_NUM_VAL]
+
         # Default to roidb handler
         self._roidb_handler = self.gt_roidb
         self._salt = str(uuid.uuid4())
@@ -112,10 +121,12 @@ class visual_genome(imdb):
                 with open(path, 'r') as f:
                     # NOTE: the return index has entries with INT type
                     image_index = json.load(f)[self._image_set]
+                    print ("loading splits from {}".format(path))
             elif ext == 'txt':
                 path = pjoin(cfg.SPLIT_DIR, '%s.txt' % self._image_set)
                 with open(path, 'r') as f:
                     image_index = [line.strip() for line in f.readlines()]
+                print ("loading splits from {}".format(path))
         else:
             image_index = [key for key in self._gt_regions]
 

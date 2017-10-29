@@ -56,7 +56,9 @@ def get_minibatch(roidb):
         blobs['im_info'] = np.array(
             # TODO: for blob format stick to tf_faster_rcnn version
             # [[im_blob.shape[2], im_blob.shape[3], im_scales[0]]],
-            [[im_blob.shape[1], im_blob.shape[2], im_scales[0]]],
+            # [[im_blob.shape[1], im_blob.shape[2], im_scales[0]]],
+            # make it shape [3,]
+            [im_blob.shape[1], im_blob.shape[2], im_scales[0]],
             dtype=np.float32)
         # if cfg.LIMIT_RAM:
         #     blobs['gt_phrases'] = roidb[0]['gt_phrases']

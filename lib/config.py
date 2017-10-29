@@ -38,6 +38,51 @@ cfg = __C
 
 __C.TRAIN = edict()
 
+# learning rate manully decay
+__C.TRAIN.LR_DIY_DECAY = True
+
+# training optimizer: either 'adam' 'sgd_m'
+__C.TRAIN.OPTIMIZER = 'sgd_m'
+
+# Initial learning rate
+__C.TRAIN.LEARNING_RATE = 0.001
+
+# Weight decay, for regularization
+__C.TRAIN.WEIGHT_DECAY = 0.
+
+# Step size for reducing the learning rate, currently only support one step
+__C.TRAIN.STEPSIZE = [100000]
+
+# Factor for reducing the learning rate
+__C.TRAIN.GAMMA = 0.5
+
+# Momentum
+__C.TRAIN.MOMENTUM = 0.98
+
+# Iteration intervals for showing the loss during training, on command line interface
+__C.TRAIN.DISPLAY = 10
+
+# The number of snapshots kept, older ones are deleted to save space
+__C.TRAIN.SNAPSHOT_KEPT = 3
+
+# Iterations between snapshots
+__C.TRAIN.SNAPSHOT_ITERS = 5000
+
+# The time interval for saving tensorflow summaries
+__C.TRAIN.SUMMARY_INTERVAL = 180
+
+# Whether to double the learning rate for bias
+__C.TRAIN.DOUBLE_BIAS = True
+
+# Whether to have weight decay on bias as well
+__C.TRAIN.BIAS_DECAY = False
+
+# learning rate exponentially decay rate
+__C.TRAIN.EXP_DECAY_RATE = 0.96
+
+# learning rate exponentially decay step size
+__C.TRAIN.EXP_DECAY_STEPS = 5000
+
 # Training using proposal
 __C.TRAIN.PROPOSAL_METHOD = 'gt'
 
@@ -90,7 +135,7 @@ __C.TRAIN.BBOX_NORMALIZE_STDS = (0.1, 0.1, 0.2, 0.2)
 
 # solver.prototxt specifies the snapshot path prefix, this adds an optional
 # infix to yield the path: <prefix>[_<infix>]_iters_XYZ.caffemodel
-__C.TRAIN.SNAPSHOT_INFIX = 'res50_densecap'
+__C.TRAIN.SNAPSHOT_PREFIX = 'res50_densecap'
 
 # Weight decay, for regularization
 __C.TRAIN.WEIGHT_DECAY = 0.0001
@@ -301,6 +346,15 @@ __C.CONTEXT_MODE = 'concat'
 
 # follow tf_faster_rcnn, sample a fixed number of regions
 __C.SAMPLE_NUM_FIXED_REGIONS = False
+
+# overall test, i.e. overfit minibatch
+__C.ALL_TEST = True
+
+# number of training examples for overall test
+__C.ALL_TEST_NUM_TRAIN = 100
+
+# number of validation examles for overall test
+__C.ALL_TEST_NUM_VAL = 100
 
 #
 # LOSS options

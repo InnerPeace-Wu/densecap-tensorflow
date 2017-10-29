@@ -18,8 +18,9 @@ from __future__ import print_function
 
 """Train a dense caption model"""
 
-import os
-from os.path import join as pjoin
+import _init_paths
+# import os
+# from os.path import join as pjoin
 import sys
 # sys.path.append("..")
 # import time
@@ -65,6 +66,9 @@ def parse_args():
     parser.add_argument('--imdb', dest='imdb_name',
                         help='dataset to train on',
                         default='vg_1.2_train', type=str)
+    parser.add_argument('--imdbval', dest='imdbval_name',
+                        help='dataset to validation on',
+                        default='vg_1.2_val', type=str)
     parser.add_argument('--rand', dest='randomize',
                         help='randomize (do not use a fixed seed)',
                         action='store_true')
@@ -120,7 +124,7 @@ def get_roidb_limit_ram(imdb_name):
     return imdb, roidb
 
 
-def main(_):
+def main():
     args = parse_args()
 
     # c_time = time.strftime('%m%d_%H%M', time.localtime())
@@ -157,6 +161,15 @@ def main(_):
     tb_dir = get_output_tb_dir(imdb, args.tag)
     print('TensorFlow summaries will be saved to `{:s}`'.format(tb_dir))
 
+    # also add validation set, but with no flipping image
+    orgflip = cfg.TRAIN.USE_FLIPPED
+    cfg.TRAIN.USE_FLIPPED = False
+    if not cfg.LIMIT_RAM:
+        _, valroidb = combined_roidb(args.imdbval_name)
+    else:
+        _, valroidb = get_roidb_limit_ram(args.imdbval_name)
+    cfg.TRAIN.USE_FLIPPED = orgflip
+
     # load network
     if args.net == 'vgg16':
         net = vgg16()
@@ -170,7 +183,7 @@ def main(_):
         raise NotImplementedError
 
     # TODO: "imdb" may not be useful during training
-    train_net(net, imdb, roidb, output_dir, tb_dir,
+    train_net(net, imdb, roidb, valroidb, output_dir, tb_dir,
               pretrained_model=args.pretrained_model,
               max_iters=args.max_iters)
 

@@ -235,7 +235,7 @@ class Network(object):
                 proposal_target_single_class_layer,
                 [rois, roi_scores, self._gt_boxes, self._gt_phrases],
                 [tf.float32, tf.float32, tf.float32, tf.float32,
-                 tf.float32, tf.float32, tf.float32, tf.int32],
+                 tf.float32, tf.float32, tf.int32, tf.int32],
                 name="proposal_target_single_class")
 
             rois.set_shape([None, 5])
@@ -247,9 +247,13 @@ class Network(object):
             bbox_outside_weights.set_shape([None, 4])
             clss.set_shape([None, 1])
 
+            # phrases = tf.to_int32(phrases, name='to_int32')
+            labels = tf.to_int32(labels, name="to_int32")
+            # clss = tf.to_int32(clss, name="to_int32")
+
             self._proposal_targets['rois'] = rois
-            self._proposal_targets['labels'] = tf.to_int32(labels, name="to_int32")
-            self._proposal_targets['clss'] = tf.to_int32(clss, name="to_int32")
+            self._proposal_targets['labels'] = labels
+            self._proposal_targets['clss'] = clss
             self._proposal_targets['phrases'] = phrases
             self._proposal_targets['bbox_targets'] = bbox_targets
             self._proposal_targets['bbox_inside_weights'] = bbox_inside_weights
@@ -274,18 +278,18 @@ class Network(object):
         num_regions = self._roi_labels.shape[0]
         with tf.variable_scope(name) as scope:
             input_sentence, target_sentence, cont_sentence, cont_bbox = \
-            tf.py_func(sentence_data_layer,
-                       [self._roi_labels, self._roi_phrases, time_steps, mode],
-                       [tf.float32, tf.float32, tf.float32, tf.float32],
-                       name='sentence_data')
+                tf.py_func(sentence_data_layer,
+                           [self._roi_labels, self._roi_phrases, time_steps, mode],
+                           [tf.float32, tf.float32, tf.float32, tf.float32],
+                           name='sentence_data')
             if cfg.CONTEXT_MODE == 'concat':
                 input_sentence.set_shape([num_regions, cfg.TIME_STEPS - 1])
             elif cfg.CONTEXT_MODE == 'repeat':
                 input_sentence.set_shape([num_regions, cfg.TIME_STEPS])
 
-            target_sentence.set_shape([ num_regions, cfg.TIME_STEPS])
-            cont_sentence.set_shape([ num_regions, cfg.TIME_STEPS])
-            cont_bbox.set_shape([ num_regions, cfg.TIME_STEPS])
+            target_sentence.set_shape([num_regions, cfg.TIME_STEPS])
+            cont_sentence.set_shape([num_regions, cfg.TIME_STEPS])
+            cont_bbox.set_shape([num_regions, cfg.TIME_STEPS])
 
             input_sentence = tf.to_int32(input_sentence, name='to_int32')
             target_sentence = tf.to_int32(target_sentence, name='to_int32')
@@ -295,6 +299,8 @@ class Network(object):
             self._sentence_data['target_sentence'] = target_sentence
             self._sentence_data['cont_sentence'] = cont_sentence
             self._sentence_data['cont_bbox'] = cont_bbox
+
+            self._score_summaries.update(self._sentence_data)
 
             if cfg.DEBUG_ALL:
                 self._for_debug['input_sentence'] = input_sentence
@@ -598,7 +604,6 @@ class Network(object):
         self._num_classes = num_classes
         self._mode = mode
 
-
         training = mode == 'TRAIN'
         testing = mode == 'TEST'
 
@@ -681,39 +686,54 @@ class Network(object):
 
     def get_summary(self, sess, blobs):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes']}
+                     self._gt_boxes: blobs['gt_boxes'],
+                     self._gt_phrases: blobs['gt_phrases']}
+
         summary = sess.run(self._summary_op_val, feed_dict=feed_dict)
 
         return summary
 
     def train_step(self, sess, blobs, train_op):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes']}
-        rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],
-                                                                            self._losses['rpn_loss_box'],
-                                                                            self._losses['cross_entropy'],
-                                                                            self._losses['loss_box'],
-                                                                            self._losses['total_loss'],
-                                                                            train_op],
-                                                                           feed_dict=feed_dict)
-        return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
+                     self._gt_boxes: blobs['gt_boxes'],
+                     self._gt_phrases: blobs['gt_phrases']}
+
+        rpn_loss_cls, rpn_loss_box, loss_cls, \
+        loss_box, caption_loss, loss, \
+        _ = sess.run([self._losses["rpn_cross_entropy"],
+                      self._losses['rpn_loss_box'],
+                      self._losses['clss_cross_entropy'],
+                      self._losses['loss_box'],
+                      self._losses['caption_loss'],
+                      self._losses['total_loss'],
+                      train_op],
+                     feed_dict=feed_dict)
+        return rpn_loss_cls, rpn_loss_box, loss_cls, \
+               loss_box, caption_loss, loss
 
     def train_step_with_summary(self, sess, blobs, train_op):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                      self._gt_boxes: blobs['gt_boxes'],
                      self._gt_phrases: blobs['gt_phrases']}
 
-        rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn_cross_entropy"],
-                                                                                     self._losses['rpn_loss_box'],
-                                                                                     self._losses['cross_entropy'],
-                                                                                     self._losses['loss_box'],
-                                                                                     self._losses['total_loss'],
-                                                                                     self._summary_op,
-                                                                                     train_op],
-                                                                                    feed_dict=feed_dict)
-        return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
+        rpn_loss_cls, rpn_loss_box, loss_cls, \
+        loss_box, caption_loss, loss, \
+        summary, _ = sess.run([self._losses["rpn_cross_entropy"],
+                               self._losses['rpn_loss_box'],
+                               self._losses['clss_cross_entropy'],
+                               self._losses['loss_box'],
+                               self._losses['caption_loss'],
+                               self._losses['total_loss'],
+                               self._summary_op,
+                               train_op],
+                              feed_dict=feed_dict)
+
+        return rpn_loss_cls, rpn_loss_box, loss_cls, \
+               loss_box, caption_loss, loss, summary
 
     def train_step_no_return(self, sess, blobs, train_op):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes']}
+                     self._gt_boxes: blobs['gt_boxes'],
+                     self._gt_phrases: blobs['gt_phrases']}
+
         sess.run([train_op], feed_dict=feed_dict)

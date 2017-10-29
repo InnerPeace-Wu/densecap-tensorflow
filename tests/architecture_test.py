@@ -26,7 +26,7 @@ def architecture_test():
     tfconfig.gpu_options.allow_growth = True
 
     feed_dict = {net._image: blob['data'],
-                 net._im_info: blob['im_info'][0],
+                 net._im_info: blob['im_info'],
                  net._gt_boxes: blob['gt_boxes'],
                  net._gt_phrases: blob['gt_phrases']}
     output = net._for_debug

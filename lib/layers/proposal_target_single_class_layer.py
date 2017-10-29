@@ -41,8 +41,8 @@ def proposal_target_single_class_layer(rpn_rois, rpn_scores, gt_boxes, gt_phrase
         all_scores = np.vstack((all_scores, zeros))
 
     num_images = 1
-    rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
-    fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
+    rois_per_image = cfg.TRAIN.BATCH_SIZE // num_images
+    fg_rois_per_image = int(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
     # Sample rois with classification labels and bounding box regression
     # targets
@@ -57,7 +57,7 @@ def proposal_target_single_class_layer(rpn_rois, rpn_scores, gt_boxes, gt_phrase
     bbox_targets = bbox_targets.reshape(-1, 4)
     bbox_inside_weights = bbox_inside_weights.reshape(-1, 4)
     bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
-    clss = np.array(labels > 0).astype(np.float32)
+    clss = np.array(labels > 0).astype(np.int32)
 
     return rois, roi_scores, labels, bbox_targets, \
            bbox_inside_weights, bbox_outside_weights, clss, phrases

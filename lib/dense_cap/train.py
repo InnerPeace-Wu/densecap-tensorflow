@@ -39,15 +39,20 @@ class SolverWrapper(object):
     use to unnormalize the learned bounding-box regression weights.
     """
 
-    def __init__(self, network, imdb, roidb, output_dir, tb_dir,
+    def __init__(self, sess, network, imdb, roidb, valroidb, output_dir, tb_dir,
                  pretrained_model=None):
         """Initialize the SolverWrapper."""
         self.net = network
         self.imdb = imdb
         self.roidb = roidb
+        self.valroidb = valroidb
         self.output_dir = output_dir
         self.tb_dir = tb_dir
         self.pretrained_model = pretrained_model
+
+        self.tbvaldir = tb_dir + '_val'
+        if not os.path.exists(self.tbvaldir):
+            os.makedirs(self.tbvaldir)
 
         # TODO: disable BBOX NORMALIZE
         # if (cfg.TRAIN.HAS_RPN and cfg.TRAIN.BBOX_REG and
@@ -141,14 +146,27 @@ class SolverWrapper(object):
             # Set the random seed for tensorflow(done in the beginning)
             # tf.set_random_seed(cfg.RNG_SEED)
             # Build the main computation graph
-            layers = self.net.create_architecture('TRAIN', self.imdb.num_classes, tag='default',
-                                                  anchor_scales=cfg.ANCHOR_SCALES,
-                                                  anchor_ratios=cfg.ANCHOR_RATIOS)
+            layers = self.net.create_architecture('TRAIN', num_classes=1, tag='default')
             # Define the loss
             loss = layers['total_loss']
             # Set learning rate and momentum
             lr = tf.Variable(cfg.TRAIN.LEARNING_RATE, trainable=False)
-            self.optimizer = tf.train.MomentumOptimizer(lr, cfg.TRAIN.MOMENTUM)
+
+            if cfg.TRAIN.LR_DIY_DECAY:
+                learning_rate = lr
+            else:
+                self.global_step = tf.Variable(0, trainable=False)
+                learning_rate = tf.train.exponential_decay(lr, self.global_step,
+                                                           cfg.TRAIN.EXP_DECAY_STEPS,
+                                                           cfg.TRAIN.EXP_DECAY_RATE,
+                                                           staircase=True)
+            if cfg.TRAIN.OPTIMIZER == 'sgd_m':
+                self.optimizer = tf.train.MomentumOptimizer(lr, cfg.TRAIN.MOMENTUM)
+            elif cfg.TRAIN.OPTIMIZER == 'adam':
+                self.optimizer = tf.train.AdadeltaOptimizer(learning_rate)
+
+                # must disable diy decay when using exponentially decay.
+                assert cfg.TRAIN.LR_DIY_DECAY == False
 
             # Compute the gradients with regard to the loss
             gvs = self.optimizer.compute_gradients(loss)
@@ -170,10 +188,10 @@ class SolverWrapper(object):
             # We will handle the snapshots ourselves
             self.saver = tf.train.Saver(max_to_keep=100000)
             # Write the train and validation information to tensorboard
-            self.writer = tf.summary.FileWriter(self.tbdir, sess.graph)
-            # self.valwriter = tf.summary.FileWriter(self.tbvaldir)
+            self.writer = tf.summary.FileWriter(self.tb_dir, sess.graph)
+            self.valwriter = tf.summary.FileWriter(self.tbvaldir)
 
-        return lr, train_op
+        return learning_rate, train_op
 
     def find_previous(self):
         sfiles = os.path.join(self.output_dir, cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_*.ckpt.meta')
@@ -264,8 +282,8 @@ class SolverWrapper(object):
 
     def train_model(self, sess, max_iters):
         # Build data layers for both training and validation set
-        self.data_layer = RoIDataLayer(self.roidb, self.imdb.num_classes)
-        # self.data_layer_val = RoIDataLayer(self.valroidb, self.imdb.num_classes, random=True)
+        self.data_layer = RoIDataLayer(self.roidb)
+        self.data_layer_val = RoIDataLayer(self.valroidb,  random=True)
 
         # Construct the computation graph
         lr, train_op = self.construct_graph(sess)
@@ -289,12 +307,13 @@ class SolverWrapper(object):
         next_stepsize = stepsizes.pop()
         while iter < max_iters + 1:
             # Learning rate
-            if iter == next_stepsize + 1:
-                # Add snapshot here before reducing the learning rate
-                self.snapshot(sess, iter)
-                rate *= cfg.TRAIN.GAMMA
-                sess.run(tf.assign(lr, rate))
-                next_stepsize = stepsizes.pop()
+            if cfg.TRAIN.LR_DIY_DECAY:
+                if iter == next_stepsize + 1:
+                    # Add snapshot here before reducing the learning rate
+                    self.snapshot(sess, iter)
+                    rate *= cfg.TRAIN.GAMMA
+                    sess.run(tf.assign(lr, rate))
+                    next_stepsize = stepsizes.pop()
 
             timer.tic()
             # Get training data, one batch at a time
@@ -303,7 +322,8 @@ class SolverWrapper(object):
             now = time.time()
             if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
                 # Compute the graph with summary
-                rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+                rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, \
+                caption_loss, total_loss, summary = \
                     self.net.train_step_with_summary(sess, blobs, train_op)
                 self.writer.add_summary(summary, float(iter))
                 # Also check the summary on the validation set
@@ -313,15 +333,21 @@ class SolverWrapper(object):
                 last_summary_time = now
             else:
                 # Compute the graph without summary
-                rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
+                rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, \
+                caption_loss, total_loss = \
                     self.net.train_step(sess, blobs, train_op)
             timer.toc()
 
             # Display training information
             if iter % (cfg.TRAIN.DISPLAY) == 0:
-                print('iter: %d / %d, total loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
+                if cfg.TRAIN.LR_DIY_DECAY:
+                    learning_rate = lr
+                else:
+                    learning_rate = sess.run(lr)
+                print('iter: %d / %d, total loss: %.6f\n >>> caption loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
                       '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
-                      (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
+                      (iter, max_iters, total_loss, caption_loss, rpn_loss_cls,
+                       rpn_loss_box, loss_cls, loss_box, learning_rate.eval()))
                 print('speed: {:.3f}s / iter'.format(timer.average_time))
 
             # Snapshotting
@@ -406,7 +432,7 @@ def filter_roidb(roidb):
     return filtered_roidb
 
 
-def train_net(network, imdb, roidb, output_dir, tb_dir,
+def train_net(network, imdb, roidb, valroidb, output_dir, tb_dir,
               pretrained_model=None, max_iters=40000):
     """Train a Dense Caption network."""
     if not cfg.LIMIT_RAM:
@@ -416,10 +442,10 @@ def train_net(network, imdb, roidb, output_dir, tb_dir,
     tfconfig.gpu_options.allow_growth = True
 
     with tf.Session(config=tfconfig) as sess:
-        sw = SolverWrapper(sess, network, imdb, roidb, output_dir, tb_dir,
+        sw = SolverWrapper(sess, network, imdb, roidb, valroidb, output_dir, tb_dir,
                            pretrained_model=pretrained_model)
 
         print('Solving...')
-        model_paths = sw.train_model(sess, max_iters)
+        sw.train_model(sess, max_iters)
         print('done solving')
-        return model_paths
+        # return model_paths

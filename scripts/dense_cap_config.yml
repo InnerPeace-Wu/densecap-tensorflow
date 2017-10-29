@@ -1,4 +1,6 @@
 EXP_DIR: dense_cap
+DEBUG_ALL: False
+LIMIT_RAM: True
 TRAIN:
   HAS_RPN: True
   IMS_PER_BATCH: 1
