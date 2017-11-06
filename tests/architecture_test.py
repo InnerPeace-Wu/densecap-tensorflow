@@ -17,10 +17,13 @@ import numpy as np
 
 def architecture_test():
     blob = get_data_test()
-
+    tf.reset_default_graph()
     net = resnetv1(50)
     # net._build_network()
-    net.create_architecture(mode='TRAIN', tag='pre')
+    net.create_architecture(mode='TEST', tag='pre')
+
+    for n in tf.get_default_graph().as_graph_def().node:
+        print(n.name)
 
     tfconfig = tf.ConfigProto(allow_soft_placement=True)
     tfconfig.gpu_options.allow_growth = True
@@ -40,7 +43,8 @@ def architecture_test():
     with tf.Session(config=tfconfig) as sess:
         init = tf.global_variables_initializer()
         sess.run(init)
-        out = sess.run(output, feed_dict=feed_dict)
+        out = sess.run('resnet_v1_50_5/lstm/cap_init_state:0', feed_dict=feed_dict)
+        # out = sess.run(output, feed_dict=feed_dict)
 
         for k, v in six.iteritems(out):
             print("name: {}               ==> {}".format(k, v.shape))

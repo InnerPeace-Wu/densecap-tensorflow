@@ -3,7 +3,6 @@
 # Written by InnerPeace
 # This file is adapted from Linjie's work
 # --------------------------------------------------------
-# --------------------------------------------------------
 # Train a dense captioning model
 # Code adapted from faster R-CNN project
 # --------------------------------------------------------

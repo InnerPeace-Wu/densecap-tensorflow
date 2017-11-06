@@ -77,13 +77,13 @@ class SolverWrapper(object):
             os.makedirs(self.output_dir)
 
         # Store the model snapshot
-        filename = cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_{:d}'.format(iter) + '.ckpt'
+        filename = cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_{}'.format(iters) + '.ckpt'
         filename = os.path.join(self.output_dir, filename)
         self.saver.save(sess, filename)
         print('Wrote snapshot to: {:s}'.format(filename))
 
         # Also store some meta information, random state, etc.
-        nfilename = cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_{:d}'.format(iter) + '.pkl'
+        nfilename = cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_{}'.format(iters) + '.pkl'
         nfilename = os.path.join(self.output_dir, nfilename)
         # current state of numpy random
         st0 = np.random.get_state()

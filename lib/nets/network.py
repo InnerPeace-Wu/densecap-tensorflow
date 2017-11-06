@@ -315,70 +315,128 @@ class Network(object):
         comput image context feature and embed input sentence,
         do 'concat' or 'repeat' image feature
         """
+        # Node in graph:  resnet_v1_50_4/fc8_im_context/BiasAdd
         fc8_im_context = slim.fully_connected(fc7, cfg.EMBED_DIM,
                                               weights_initializer=initializer,
                                               trainable=is_training,
                                               activation_fn=None, scope='fc8_im_context')
-        self._embedding = tf.get_variable("embedding",
-                                          # 0,1,2 for pad sos eof respectively.
-                                          [cfg.VOCAB_SIZE + 3, cfg.EMBED_DIM],
-                                          initializer=initializer,
-                                          trainable=is_training
-                                          )
-        embed_input_sentence = tf.nn.embedding_lookup(self._embedding,
-                                                      input_sentence)
+        with tf.variable_scope('seq_embedding'), tf.device("/cpu:0"):
+            self._embedding = tf.get_variable("embedding",
+                                              # 0,1,2 for pad sos eof respectively.
+                                              [cfg.VOCAB_SIZE + 3, cfg.EMBED_DIM],
+                                              initializer=initializer,
+                                              trainable=is_training
+                                              )
+            embed_input_sentence = tf.nn.embedding_lookup(self._embedding,
+                                                          input_sentence)
 
-        if cfg.CONTEXT_MODE == 'concat':
-            im_context = tf.expand_dims(fc8_im_context, axis=1)
-            im_concat_words = tf.concat([im_context, embed_input_sentence], axis=1)
-        else:
-            raise NotImplementedError
+        location_lstm_cell = rnn.BasicLSTMCell(cfg.EMBED_DIM, forget_bias=1.0, state_is_tuple=True)
+        caption_lstm_cell = rnn.BasicLSTMCell(cfg.EMBED_DIM, forget_bias=1.0, state_is_tuple=True)
 
-        location_lstm_cell = rnn.BasicLSTMCell(cfg.EMBED_DIM, forget_bias=1.0)
-        caption_lstm_cell = rnn.BasicLSTMCell(cfg.EMBED_DIM, forget_bias=1.0)
-        sequence_length = self._sequence_length(input_sentence)
-        caption_outputs, caption_states = tf.nn.dynamic_rnn(caption_lstm_cell, im_concat_words,
+        # add dropout in rnn
+        # cell = rnn.DropoutWrapper(caption_lstm_cell,
+        #                           input_keep_prob=prob,
+        #                           output_keep_prob=prob,)
+
+        with tf.variable_scope("lstm") as lstm_scope:
+            # Feed the image embeddings to set the intial LSTM state
+            cap_zero_state = caption_lstm_cell.zero_state(
+                batch_size=tf.shape(fc8_im_context)[0], dtype=tf.float32)
+            loc_zero_state = location_lstm_cell.zero_state(
+                batch_size=tf.shape(fc8_im_context)[0], dtype=tf.float32)
+            with tf.variable_scope('cap_lstm'):
+                _, cap_init_state = caption_lstm_cell(fc8_im_context, cap_zero_state)
+            with tf.variable_scope('loc_lstm'):
+                _, loc_init_state = location_lstm_cell(fc8_im_context, loc_zero_state)
+
+            # Allow the LSTM variable to be reused
+            lstm_scope.reuse_variables()
+
+            if is_training:
+                if cfg.CONTEXT_MODE == 'concat':
+                    im_context = tf.expand_dims(fc8_im_context, axis=1)
+                    im_concat_words = tf.concat([im_context, embed_input_sentence], axis=1)
+                else:
+                    raise NotImplementedError
+
+                sequence_length = self._sequence_length(input_sentence)
+                cap_outputs, cap_states = tf.nn.dynamic_rnn(caption_lstm_cell, im_concat_words,
                                                             sequence_length=sequence_length,
                                                             dtype=tf.float32,
                                                             scope='captoin_lstm')
 
-        loc_outputs, loc_states = tf.nn.dynamic_rnn(location_lstm_cell, im_concat_words,
-                                                    sequence_length=sequence_length,
-                                                    dtype=tf.float32,
-                                                    scope='location_lstm')
+                loc_outputs, loc_states = tf.nn.dynamic_rnn(location_lstm_cell, im_concat_words,
+                                                            sequence_length=sequence_length,
+                                                            dtype=tf.float32,
+                                                            scope='location_lstm')
+                # OUT OF MEMORY ON GPU
+                # inv_embedding = tf.tile(tf.expand_dims(tf.transpose(self._embedding),
+                #                                        [0]),
+                #                         [tf.shape(caption_outputs)[0], 1, 1])
+                # predict_caption = tf.matmul(caption_outputs, inv_embedding)
 
-        loc_out_slice = tf.slice(loc_outputs, [0, cfg.TIME_STEPS - 1, 0], [-1, 1, -1])
-        loc_out_slice = tf.squeeze(loc_out_slice, [1])
+                predict_cap_reshape = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
+                                                tf.transpose(self._embedding))
+                cap_logits = tf.reshape(predict_cap_reshape,
+                                        [-1, cfg.TIME_STEPS, cfg.VOCAB_SIZE + 3])
+
+                loc_out_slice = tf.slice(loc_outputs, [0, cfg.TIME_STEPS - 1, 0], [-1, 1, -1])
+                loc_out_slice = tf.squeeze(loc_out_slice, [1])
+
+            else:
+                # In inference or test mode, use concatenated states for convenient feeding
+                tf.concat(values=cap_init_state, axis=1, name='cap_init_state')
+                tf.concat(values=loc_init_state, axis=1, name='loc_init_state')
+
+                # placeholder for feeding a batch of concatnated states.
+                cap_state_feed = tf.placeholder(dtype=tf.float32,
+                                                shape=[None, sum(caption_lstm_cell.state_size)],
+                                                name='cap_state_feed')
+                loc_state_feed = tf.placeholder(dtype=tf.float32,
+                                                shape=[None, sum(location_lstm_cell.state_size)],
+                                                name='loc_state_feed')
+                cap_state_tuple = tf.split(value=cap_state_feed, num_or_size_splits=2, axis=1)
+                loc_state_tuple = tf.split(value=loc_state_feed, num_or_size_splits=2, axis=1)
+
+                # Run a single LSTM step
+                seq_embedding = tf.squeeze(embed_input_sentence, axis=[1])
+                cap_outputs, cap_state_tuple = caption_lstm_cell(
+                    inputs=seq_embedding,
+                    state=cap_state_tuple
+                )
+                loc_outputs, loc_state_tuple = location_lstm_cell(
+                    inputs=seq_embedding,
+                    state=loc_state_tuple
+                )
+
+                # Concatenate the resulting state
+                tf.concat(values=cap_state_tuple, axis=1, name='cap_state')
+                tf.concat(values=loc_state_tuple, axis=1, name='loc_state')
+                loc_out_slice = cap_outputs
+
+                # caption logits
+                cap_logits = tf.matmul(cap_outputs, tf.transpose(self._embedding), name='cap_logits')
+                tf.nn.softmax(cap_logits, name='cap_probs')
+
         bbox_pred = slim.fully_connected(loc_out_slice, 4,
                                          weights_initializer=initializer,
                                          trainable=is_training,
                                          activation_fn=None, scope='bbox_pred')
 
-        # OUT OF MEMORY ON GPU
-        # inv_embedding = tf.tile(tf.expand_dims(tf.transpose(self._embedding),
-        #                                        [0]),
-        #                         [tf.shape(caption_outputs)[0], 1, 1])
-        # predict_caption = tf.matmul(caption_outputs, inv_embedding)
-
-        predict_cap_reshape = tf.matmul(tf.reshape(caption_outputs, [-1, cfg.EMBED_DIM]),
-                                        tf.transpose(self._embedding))
-        predict_caption = tf.reshape(predict_cap_reshape,
-                                     [-1, cfg.TIME_STEPS, cfg.VOCAB_SIZE + 3])
-
         self._predictions['bbox_pred'] = bbox_pred
-        self._predictions['predict_caption'] = predict_caption
+        self._predictions['predict_caption'] = cap_logits
 
         if cfg.DEBUG_ALL:
             self._for_debug['embedding'] = self._embedding
             self._for_debug['embed_input_sentence'] = embed_input_sentence
             self._for_debug['fc8'] = fc8_im_context
-            self._for_debug['im_context'] = im_context
-            self._for_debug['im_concat_words'] = im_concat_words
-            self._for_debug['captoin_outputs'] = caption_outputs
+            # self._for_debug['im_context'] = im_context
+            # self._for_debug['im_concat_words'] = im_concat_words
+            self._for_debug['captoin_outputs'] = cap_outputs
             self._for_debug['loc_outputs'] = loc_outputs
             self._for_debug['loc_out_slice'] = loc_out_slice
             self._for_debug['bbox_pred'] = bbox_pred
-            self._for_debug['predict_caption'] = predict_caption
+            self._for_debug['predict_caption'] = cap_logits
 
     def _sequence_length(self, input_sentence):
         return tf.reduce_sum(tf.cast(tf.cast(input_sentence, tf.bool), tf.int32), axis=1)
@@ -424,8 +482,14 @@ class Network(object):
             else:
                 raise NotImplementedError
 
-            # sentence data layer
-            input_sentence = self._sentence_data_layer('sententce_data')
+            if is_training:
+                # sentence data layer
+                input_sentence = self._sentence_data_layer('sententce_data')
+            else:
+                input_feed = tf.placeholder(dtype=tf.int32,
+                                            shape=[None],
+                                            name='input_feed')
+                input_sentence = tf.expand_dims(input_feed, 1)
 
         fc7 = self._head_to_tail(pool5, is_training)
         with tf.variable_scope(self._scope, self._scope):
@@ -684,56 +748,72 @@ class Network(object):
                                                         feed_dict=feed_dict)
         return cls_score, cls_prob, bbox_pred, rois
 
-    def get_summary(self, sess, blobs):
-        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes'],
-                     self._gt_phrases: blobs['gt_phrases']}
+    def feed_image(self, sess, image, im_info):
+        feed_dict = {self._image: image,
+                     self._im_info: im_info}
 
-        summary = sess.run(self._summary_op_val, feed_dict=feed_dict)
+        cap_init_state, loc_init_state, cls_prob, rois = sess.run(['resnet_v1_50_5/lstm/cap_init_state:0',
+                                                                   'resnet_v1_50_5/lstm/loc_init_state:0',
+                                                                   self._predictions['cls_prob'],
+                                                                   self._predictions['rois']],
+                                                                  feed_dict=feed_dict)
 
-        return summary
+        return cap_init_state, loc_init_state, cls_prob, rois
 
-    def train_step(self, sess, blobs, train_op):
-        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes'],
-                     self._gt_phrases: blobs['gt_phrases']}
 
-        rpn_loss_cls, rpn_loss_box, loss_cls, \
-        loss_box, caption_loss, loss, \
-        _ = sess.run([self._losses["rpn_cross_entropy"],
-                      self._losses['rpn_loss_box'],
-                      self._losses['clss_cross_entropy'],
-                      self._losses['loss_box'],
-                      self._losses['caption_loss'],
-                      self._losses['total_loss'],
-                      train_op],
-                     feed_dict=feed_dict)
-        return rpn_loss_cls, rpn_loss_box, loss_cls, \
-               loss_box, caption_loss, loss
+def get_summary(self, sess, blobs):
+    feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
+                 self._gt_boxes: blobs['gt_boxes'],
+                 self._gt_phrases: blobs['gt_phrases']}
 
-    def train_step_with_summary(self, sess, blobs, train_op):
-        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes'],
-                     self._gt_phrases: blobs['gt_phrases']}
+    summary = sess.run(self._summary_op_val, feed_dict=feed_dict)
 
-        rpn_loss_cls, rpn_loss_box, loss_cls, \
-        loss_box, caption_loss, loss, \
-        summary, _ = sess.run([self._losses["rpn_cross_entropy"],
-                               self._losses['rpn_loss_box'],
-                               self._losses['clss_cross_entropy'],
-                               self._losses['loss_box'],
-                               self._losses['caption_loss'],
-                               self._losses['total_loss'],
-                               self._summary_op,
-                               train_op],
-                              feed_dict=feed_dict)
+    return summary
 
-        return rpn_loss_cls, rpn_loss_box, loss_cls, \
-               loss_box, caption_loss, loss, summary
 
-    def train_step_no_return(self, sess, blobs, train_op):
-        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes'],
-                     self._gt_phrases: blobs['gt_phrases']}
+def train_step(self, sess, blobs, train_op):
+    feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
+                 self._gt_boxes: blobs['gt_boxes'],
+                 self._gt_phrases: blobs['gt_phrases']}
 
-        sess.run([train_op], feed_dict=feed_dict)
+    rpn_loss_cls, rpn_loss_box, loss_cls, \
+    loss_box, caption_loss, loss, \
+    _ = sess.run([self._losses["rpn_cross_entropy"],
+                  self._losses['rpn_loss_box'],
+                  self._losses['clss_cross_entropy'],
+                  self._losses['loss_box'],
+                  self._losses['caption_loss'],
+                  self._losses['total_loss'],
+                  train_op],
+                 feed_dict=feed_dict)
+    return rpn_loss_cls, rpn_loss_box, loss_cls, \
+           loss_box, caption_loss, loss
+
+
+def train_step_with_summary(self, sess, blobs, train_op):
+    feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
+                 self._gt_boxes: blobs['gt_boxes'],
+                 self._gt_phrases: blobs['gt_phrases']}
+
+    rpn_loss_cls, rpn_loss_box, loss_cls, \
+    loss_box, caption_loss, loss, \
+    summary, _ = sess.run([self._losses["rpn_cross_entropy"],
+                           self._losses['rpn_loss_box'],
+                           self._losses['clss_cross_entropy'],
+                           self._losses['loss_box'],
+                           self._losses['caption_loss'],
+                           self._losses['total_loss'],
+                           self._summary_op,
+                           train_op],
+                          feed_dict=feed_dict)
+
+    return rpn_loss_cls, rpn_loss_box, loss_cls, \
+           loss_box, caption_loss, loss, summary
+
+
+def train_step_no_return(self, sess, blobs, train_op):
+    feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
+                 self._gt_boxes: blobs['gt_boxes'],
+                 self._gt_phrases: blobs['gt_phrases']}
+
+    sess.run([train_op], feed_dict=feed_dict)

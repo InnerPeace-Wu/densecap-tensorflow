@@ -1,0 +1,9 @@
+=============================
+Linjie Yang
+04/21/2016
+=============================
+This folder holds the functions for evaluating image captioning models, including the dense captioning models. This folder is originally from a standard evaluation toolkit for MS COCO (https://github.com/tylin/coco-caption). 
+The newly added functions and usages are as follows.
+(1) dt_eval.py: function to evaluate captioning model on web data. One image only has one ground truth caption.
+(2) vg_eval.py: function to evaluate the dense captioning model on visual genome. Calculate Meteor score and mean AP which are described in the DenseCap paper (http://arxiv.org/abs/1511.07571).
+(3) meteor/meteor2.py: modified version of "meteor/meteor.py". Adapted to be usedfor multi-to-multi caption matching in DenseCap.

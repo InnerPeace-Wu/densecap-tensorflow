@@ -13,7 +13,7 @@ case $DATASET in
     TRAIN_IMDB="vg_1.0_train"
     TEST_IMDB="vg_1.0_val"
     PT_DIR="dense_cap"
-    ITERS=10000
+    ITERS=2000
 #    FINETUNE_AFTER1=200000
 #    FINETUNE_AFTER2=100000
 #    ITERS1=400000
@@ -23,7 +23,7 @@ case $DATASET in
     TRAIN_IMDB="vg_1.2_train"
     TEST_IMDB="vg_1.2_val"
     PT_DIR="dense_cap"
-    ITERS=10000
+    ITERS=50
 #    FINETUNE_AFTER1=200000
 #    FINETUNE_AFTER2=100000
 #    ITERS1=400000
