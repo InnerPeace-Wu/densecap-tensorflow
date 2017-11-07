@@ -33,6 +33,7 @@ from lib.config import cfg, cfg_from_file, cfg_from_list, get_output_dir, get_ou
 from lib.datasets.factory import get_imdb
 import lib.datasets.imdb
 from lib.dense_cap.train import get_training_roidb, train_net
+from lib.dense_cap.test import test_im
 from lib.nets.vgg16 import vgg16
 from lib.nets.resnet_v1 import resnetv1
 import pprint
@@ -44,7 +45,7 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='Test a Dense Caption network')
 
-    parser.add_argument('--weights', dest='pretrained_model',
+    parser.add_argument('--weights', dest='weights',
                         help='initialize with pretrained model weights',
                         default=None, type=str)
     parser.add_argument('--cfg', dest='cfg_file',
@@ -91,14 +92,14 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError
 
-    net.create_architecture("TEST", num_classes=1, tag='demo')
+    net.create_architecture("TEST", num_classes=1, tag='pre')
     vocab = ['<PAD>', '<SOS>', '<EOS>']
     with open(args.vocabulary, 'r') as f:
         for line in f:
             vocab.append(line.strip())
 
     # get the image paths
-    im_paths = glob.glob(pjoin(cfg.DATA_DIR, 'demo') + '*.jpg')
+    im_paths = glob.glob('./data/demo/*.jpg')
     print(im_paths)
 
     # read checkpoint file
@@ -109,13 +110,18 @@ if __name__ == '__main__':
 
     # set config
     tfconfig = tf.ConfigProto(allow_soft_placement=True)
-    tfconfig.gpu_options.allow_growth=True
+    tfconfig.gpu_options.allow_growth = True
 
     # init session
-    saver = tf.train.saver()
+    saver = tf.train.Saver()
     with tf.Session(config=tfconfig) as sess:
         print('Restored from {}'.format(ckpt.model_checkpoint_path))
         saver.restore(sess, ckpt.model_checkpoint_path)
-        for path in im_paths:
 
+        # for n in tf.get_default_graph().as_graph_def().node:
+        #     if 'input_feed' in n.name:
+        #         print(n.name)
+
+        for path in im_paths:
+            test_im(sess, net, path, vocab)
 

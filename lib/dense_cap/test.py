@@ -222,15 +222,35 @@ def im_detect(sess, net, im, boxes=None, use_box_at=-1):
 
     # get initial states and rois
     cap_state, loc_state, scores, rois = net.feed_image(sess, blobs['data'],
-                                                                  blobs['im_info'])
+                                                        blobs['im_info'][0])
 
     # proposal boxes
     boxes = rois[:, 1:5] / im_scales[0]
     proposal_n = rois.shape[0]
 
     cap_probs = np.ones((proposal_n, 1), dtype=np.int32)
+    # index of <EOS> in vocab
+    end_idx = 2
+    # captions = np.empty([proposal_n, 1], dtype=np.int32)
+    bbox_offsets_list = []
+    box_offsets = np.zeros((proposal_n, 4), dtype=np.float32)
+    bbox_pred = np.zeros((proposal_n, 4), dtype=np.float32)
     for i in xrange(cfg.TIME_STEPS - 1):
+        # dim: [proposal_n, ]
         input_feed = np.argmax(cap_probs, axis=1)
+        if i == 0:
+            captions = input_feed[:, None]
+        else:
+            captions = np.concatenate((captions, input_feed[:, None]), axis=1)
+        # dim: [proposal_n, i+1]
+        end_ids = np.where(input_feed == end_idx)[0]
+        # prepare for seq length in dynamic rnn
+        input_feed[end_ids] = 0
+        box_offsets[end_ids] = bbox_pred[end_ids]
+
+        cap_probs, bbox_pred, cap_state, loc_state = net.inference_step(sess, input_feed,
+                                                                        cap_state, loc_state)
+        bbox_offsets_list.append(bbox_pred)
 
     # bbox target unnormalization
     box_deltas = box_offsets * bbox_stds + bbox_mean
@@ -239,13 +259,13 @@ def im_detect(sess, net, im, boxes=None, use_box_at=-1):
     pred_boxes = bbox_transform_inv(boxes, box_deltas)
     pred_boxes = clip_boxes(pred_boxes, im.shape)
 
-    return scores, pred_boxes, captions
+    return scores[:, 1], pred_boxes, captions
 
 
 def vis_detections(im_path, im, captions, dets, thresh=0.5, save_path='vis'):
     """Visual debugging of detections by saving images with detected bboxes."""
     # add html generation for better visualization
-
+    print('visualizing ...')
     if not os.path.exists(save_path + '/images'):
         os.makedirs(save_path + '/images')
     im_name = im_path.split('/')[-1][:-4]
@@ -263,18 +283,22 @@ def vis_detections(im_path, im, captions, dets, thresh=0.5, save_path='vis'):
             cv2.imwrite('%s/%s' % (save_path, im_rel_path), im_new)
             page.write('<div style=\'border: 2px solid; width:166px; height:360px; display:inline-table\'>')
             page.write('<image width="260" height = "260" src=\'%s\'></image><br> <hr><label> %s </label></div>' % (
-            im_rel_path, caption))
+                im_rel_path, caption))
     page.write('<hr>')
     page.close()
 
 
 def sentence(vocab, vocab_indices):
     # consider <eos> tag with id 0 in vocabulary
-    sentence = ' '.join([vocab[i] for i in vocab_indices])
-    suffix = ' ' + vocab[0]
-    if sentence.endswith(suffix):
-        sentence = sentence[:-len(suffix)]
-    return sentence
+    print(vocab_indices)
+    for ei, idx in enumerate(vocab_indices):
+        # End of sentence
+        if idx == 2:  break
+    sentence = ' '.join([vocab[i] for i in vocab_indices[:ei]])
+    # suffix = ' ' + vocab[2]
+    # if sentence.endswith(suffix):
+    #     sentence = sentence[1:-len(suffix)]
+    return sentence[1:]
 
 
 def test_im(sess, net, im_path, vocab, vis=True):
@@ -326,7 +350,8 @@ def test_net(feature_net, embed_net, recurrent_net, imdb, vis=True, use_box_at=-
 
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes, captions = im_detect(feature_net, embed_net, recurrent_net, im, box_proposals,
+        scores, boxes, captions = im_detect(feature_net, embed_net,
+                                            im, box_proposals,
                                             use_box_at=use_box_at)
         _t['im_detect'].toc()
 

@@ -44,17 +44,18 @@ def architecture_test():
         init = tf.global_variables_initializer()
         sess.run(init)
         out = sess.run('resnet_v1_50_5/lstm/cap_init_state:0', feed_dict=feed_dict)
+        print(out.shape)
         # out = sess.run(output, feed_dict=feed_dict)
 
-        for k, v in six.iteritems(out):
-            print("name: {}               ==> {}".format(k, v.shape))
-            # print("shape: {}".format(v.shape))
-            if k == 'labels':
-                # print(v)
-                # print("first 5 example:")
-                print(v[:5])
-            if k == 'loss' or k == 'total_loss':
-                print(k, v)
+        # for k, v in six.iteritems(out):
+        #     print("name: {}               ==> {}".format(k, v.shape))
+        #     # print("shape: {}".format(v.shape))
+        #     if k == 'labels':
+        #         # print(v)
+        #         # print("first 5 example:")
+        #         print(v[:5])
+        #     if k == 'loss' or k == 'total_loss':
+        #         print(k, v)
 
 
 if __name__ == '__main__':

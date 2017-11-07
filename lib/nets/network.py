@@ -752,68 +752,78 @@ class Network(object):
         feed_dict = {self._image: image,
                      self._im_info: im_info}
 
-        cap_init_state, loc_init_state, cls_prob, rois = sess.run(['resnet_v1_50_5/lstm/cap_init_state:0',
-                                                                   'resnet_v1_50_5/lstm/loc_init_state:0',
-                                                                   self._predictions['cls_prob'],
-                                                                   self._predictions['rois']],
-                                                                  feed_dict=feed_dict)
+        cap_init_state, loc_init_state, cls_prob, rois = sess.run([
+            'resnet_v1_50_4/lstm/cap_init_state:0',
+            'resnet_v1_50_4/lstm/loc_init_state:0',
+            self._predictions['cls_prob'],
+            self._predictions['rois']],
+            feed_dict=feed_dict)
 
         return cap_init_state, loc_init_state, cls_prob, rois
 
+    def inference_step(self, sess, input_feed, cap_state_feed, loc_state_feed):
+        feed_dict = {'resnet_v1_50_2/input_feed:0': input_feed,
+                     'resnet_v1_50_4/lstm/cap_state_feed:0': cap_state_feed,
+                     'resnet_v1_50_4/lstm/loc_state_feed:0': loc_state_feed}
+        fetches = ['resnet_v1_50_4/lstm/cap_probs:0',
+                   self._predictions['bbox_pred'],
+                   'resnet_v1_50_4/lstm/cap_state:0',
+                   'resnet_v1_50_4/lstm/loc_state:0']
+        cap_probs, bbox_pred, cap_state, loc_state = sess.run(fetches=fetches,
+                                                              feed_dict=feed_dict)
 
-def get_summary(self, sess, blobs):
-    feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                 self._gt_boxes: blobs['gt_boxes'],
-                 self._gt_phrases: blobs['gt_phrases']}
+        return cap_probs, bbox_pred, cap_state, loc_state
 
-    summary = sess.run(self._summary_op_val, feed_dict=feed_dict)
+    def get_summary(self, sess, blobs):
+        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
+                     self._gt_boxes: blobs['gt_boxes'],
+                     self._gt_phrases: blobs['gt_phrases']}
 
-    return summary
+        summary = sess.run(self._summary_op_val, feed_dict=feed_dict)
 
+        return summary
 
-def train_step(self, sess, blobs, train_op):
-    feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                 self._gt_boxes: blobs['gt_boxes'],
-                 self._gt_phrases: blobs['gt_phrases']}
+    def train_step(self, sess, blobs, train_op):
+        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
+                     self._gt_boxes: blobs['gt_boxes'],
+                     self._gt_phrases: blobs['gt_phrases']}
 
-    rpn_loss_cls, rpn_loss_box, loss_cls, \
-    loss_box, caption_loss, loss, \
-    _ = sess.run([self._losses["rpn_cross_entropy"],
-                  self._losses['rpn_loss_box'],
-                  self._losses['clss_cross_entropy'],
-                  self._losses['loss_box'],
-                  self._losses['caption_loss'],
-                  self._losses['total_loss'],
-                  train_op],
-                 feed_dict=feed_dict)
-    return rpn_loss_cls, rpn_loss_box, loss_cls, \
-           loss_box, caption_loss, loss
+        rpn_loss_cls, rpn_loss_box, loss_cls, \
+        loss_box, caption_loss, loss, \
+        _ = sess.run([self._losses["rpn_cross_entropy"],
+                      self._losses['rpn_loss_box'],
+                      self._losses['clss_cross_entropy'],
+                      self._losses['loss_box'],
+                      self._losses['caption_loss'],
+                      self._losses['total_loss'],
+                      train_op],
+                     feed_dict=feed_dict)
+        return rpn_loss_cls, rpn_loss_box, loss_cls, \
+               loss_box, caption_loss, loss
 
+    def train_step_with_summary(self, sess, blobs, train_op):
+        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
+                     self._gt_boxes: blobs['gt_boxes'],
+                     self._gt_phrases: blobs['gt_phrases']}
 
-def train_step_with_summary(self, sess, blobs, train_op):
-    feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                 self._gt_boxes: blobs['gt_boxes'],
-                 self._gt_phrases: blobs['gt_phrases']}
+        rpn_loss_cls, rpn_loss_box, loss_cls, \
+        loss_box, caption_loss, loss, \
+        summary, _ = sess.run([self._losses["rpn_cross_entropy"],
+                               self._losses['rpn_loss_box'],
+                               self._losses['clss_cross_entropy'],
+                               self._losses['loss_box'],
+                               self._losses['caption_loss'],
+                               self._losses['total_loss'],
+                               self._summary_op,
+                               train_op],
+                              feed_dict=feed_dict)
 
-    rpn_loss_cls, rpn_loss_box, loss_cls, \
-    loss_box, caption_loss, loss, \
-    summary, _ = sess.run([self._losses["rpn_cross_entropy"],
-                           self._losses['rpn_loss_box'],
-                           self._losses['clss_cross_entropy'],
-                           self._losses['loss_box'],
-                           self._losses['caption_loss'],
-                           self._losses['total_loss'],
-                           self._summary_op,
-                           train_op],
-                          feed_dict=feed_dict)
+        return rpn_loss_cls, rpn_loss_box, loss_cls, \
+               loss_box, caption_loss, loss, summary
 
-    return rpn_loss_cls, rpn_loss_box, loss_cls, \
-           loss_box, caption_loss, loss, summary
+    def train_step_no_return(self, sess, blobs, train_op):
+        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
+                     self._gt_boxes: blobs['gt_boxes'],
+                     self._gt_phrases: blobs['gt_phrases']}
 
-
-def train_step_no_return(self, sess, blobs, train_op):
-    feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                 self._gt_boxes: blobs['gt_boxes'],
-                 self._gt_phrases: blobs['gt_phrases']}
-
-    sess.run([train_op], feed_dict=feed_dict)
+        sess.run([train_op], feed_dict=feed_dict)
