@@ -380,8 +380,11 @@ class Network(object):
                 cap_logits = tf.reshape(predict_cap_reshape,
                                         [-1, cfg.TIME_STEPS, cfg.VOCAB_SIZE + 3])
 
-                loc_out_slice = tf.slice(loc_outputs, [0, cfg.TIME_STEPS - 1, 0], [-1, 1, -1])
-                loc_out_slice = tf.squeeze(loc_out_slice, [1])
+                # problematic to always slice output of the last slice
+                # loc_out_slice = tf.slice(loc_outputs, [0, cfg.TIME_STEPS - 1, 0], [-1, 1, -1])
+                # loc_out_slice = tf.squeeze(loc_out_slice, [1])
+                cont_bbox = tf.expand_dims(self._sentence_data['cont_bbox'], axis=2)
+                loc_out_slice = tf.reduce_sum(loc_outputs * cont_bbox, axis=1)
 
             else:
                 # In inference or test mode, use concatenated states for convenient feeding
@@ -471,7 +474,7 @@ class Network(object):
             # initializer_bbox = tf.contrib.layers.xavier_initializer()
 
         net_conv = self._image_to_head(is_training)
-        with tf.variable_scope(self._scope, self._scope):
+        with tf.variable_scope(self._scope):
             # build the anchors for the image
             self._anchor_component()
             # region proposal network
@@ -492,7 +495,7 @@ class Network(object):
                 input_sentence = tf.expand_dims(input_feed, 1)
 
         fc7 = self._head_to_tail(pool5, is_training)
-        with tf.variable_scope(self._scope, self._scope):
+        with tf.variable_scope(self._scope):
             # region classification
             cls_prob = self._region_classification(fc7, is_training,
                                                    initializer)
