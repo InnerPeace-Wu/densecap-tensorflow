@@ -352,7 +352,7 @@ class Network(object):
             # Allow the LSTM variable to be reused
             lstm_scope.reuse_variables()
 
-            if is_training:
+            if self._mode == 'TRAIN':
                 if cfg.CONTEXT_MODE == 'concat':
                     im_context = tf.expand_dims(fc8_im_context, axis=1)
                     im_concat_words = tf.concat([im_context, embed_input_sentence], axis=1)
@@ -375,10 +375,10 @@ class Network(object):
                 #                         [tf.shape(caption_outputs)[0], 1, 1])
                 # predict_caption = tf.matmul(caption_outputs, inv_embedding)
 
-                predict_cap_reshape = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
+                cap_logits = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
                                                 tf.transpose(self._embedding))
-                cap_logits = tf.reshape(predict_cap_reshape,
-                                        [-1, cfg.TIME_STEPS, cfg.VOCAB_SIZE + 3])
+                # cap_logits = tf.reshape(predict_cap_reshape,
+                #                         [-1, cfg.TIME_STEPS, cfg.VOCAB_SIZE + 3])
 
                 # problematic to always slice output of the last slice
                 # loc_out_slice = tf.slice(loc_outputs, [0, cfg.TIME_STEPS - 1, 0], [-1, 1, -1])
@@ -386,7 +386,7 @@ class Network(object):
                 cont_bbox = tf.expand_dims(self._sentence_data['cont_bbox'], axis=2)
                 loc_out_slice = tf.reduce_sum(loc_outputs * cont_bbox, axis=1)
 
-            else:
+            elif self._mode == 'TEST':
                 # In inference or test mode, use concatenated states for convenient feeding
                 tf.concat(values=cap_init_state, axis=1, name='cap_init_state')
                 tf.concat(values=loc_init_state, axis=1, name='loc_init_state')
@@ -420,6 +420,8 @@ class Network(object):
                 # caption logits
                 cap_logits = tf.matmul(cap_outputs, tf.transpose(self._embedding), name='cap_logits')
                 tf.nn.softmax(cap_logits, name='cap_probs')
+            else:
+                raise NotImplementedError
 
         bbox_pred = slim.fully_connected(loc_out_slice, 4,
                                          weights_initializer=initializer,
@@ -474,7 +476,7 @@ class Network(object):
             # initializer_bbox = tf.contrib.layers.xavier_initializer()
 
         net_conv = self._image_to_head(is_training)
-        with tf.variable_scope(self._scope):
+        with tf.variable_scope(self._scope + '/Extraction'):
             # build the anchors for the image
             self._anchor_component()
             # region proposal network
@@ -485,17 +487,19 @@ class Network(object):
             else:
                 raise NotImplementedError
 
-            if is_training:
+            if self._mode == 'TRAIN':
                 # sentence data layer
-                input_sentence = self._sentence_data_layer('sententce_data')
-            else:
+                input_sentence = self._sentence_data_layer('sentence_data')
+            elif self._mode == 'TEST':
                 input_feed = tf.placeholder(dtype=tf.int32,
                                             shape=[None],
                                             name='input_feed')
                 input_sentence = tf.expand_dims(input_feed, 1)
+            else:
+                raise NotImplementedError
 
         fc7 = self._head_to_tail(pool5, is_training)
-        with tf.variable_scope(self._scope):
+        with tf.variable_scope(self._scope + '/Prediction'):
             # region classification
             cls_prob = self._region_classification(fc7, is_training,
                                                    initializer)
@@ -560,19 +564,23 @@ class Network(object):
                                             1., 1.)
 
             # caption loss
-            predict_caption = self._predictions['predict_caption']
+            # shape [None*12, 10003]
             target_sentence = self._sentence_data['target_sentence']
-            captoin_loss = tf.reduce_mean(
-                tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predict_caption,
-                                                               labels=target_sentence))
+            predict_caption = self._predictions['predict_caption']
+            target_sentence = tf.reshape(target_sentence, [-1])
+            cap_mask = tf.reshape(tf.to_float(tf.cast(target_sentence, tf.bool)), [-1])
+            captoin_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predict_caption,
+                                                                                   labels=target_sentence)
+            caption_loss = tf.div(tf.reduce_sum(tf.multiply(captoin_cross_entropy, cap_mask)),
+                                  tf.reduce_sum(cap_mask), name='caption_loss')
 
             self._losses['clss_cross_entropy'] = clss_cross_entropy
             self._losses['loss_box'] = loss_box
             self._losses['rpn_cross_entropy'] = rpn_cross_entropy
             self._losses['rpn_loss_box'] = rpn_loss_box
-            self._losses['caption_loss'] = captoin_loss
+            self._losses['caption_loss'] = caption_loss
 
-            loss = cfg.LOSS.CAP_W * captoin_loss \
+            loss = cfg.LOSS.CAP_W * caption_loss \
                    + cfg.LOSS.CLS_W * clss_cross_entropy \
                    + cfg.LOSS.BBOX_W * loss_box \
                    + cfg.LOSS.RPN_CLS_W * rpn_cross_entropy \
@@ -756,8 +764,8 @@ class Network(object):
                      self._im_info: im_info}
 
         cap_init_state, loc_init_state, cls_prob, rois = sess.run([
-            'resnet_v1_50_4/lstm/cap_init_state:0',
-            'resnet_v1_50_4/lstm/loc_init_state:0',
+            'DenseCap_ResNet50/Prediction/lstm/cap_init_state:0',
+            'DenseCap_ResNet50/Prediction/lstm/loc_init_state:0',
             self._predictions['cls_prob'],
             self._predictions['rois']],
             feed_dict=feed_dict)
@@ -765,13 +773,13 @@ class Network(object):
         return cap_init_state, loc_init_state, cls_prob, rois
 
     def inference_step(self, sess, input_feed, cap_state_feed, loc_state_feed):
-        feed_dict = {'resnet_v1_50_2/input_feed:0': input_feed,
-                     'resnet_v1_50_4/lstm/cap_state_feed:0': cap_state_feed,
-                     'resnet_v1_50_4/lstm/loc_state_feed:0': loc_state_feed}
-        fetches = ['resnet_v1_50_4/lstm/cap_probs:0',
+        feed_dict = {'DenseCap_ResNet50/Extraction/input_feed:0': input_feed,
+                     'DenseCap_ResNet50/Prediction/lstm/cap_state_feed:0': cap_state_feed,
+                     'DenseCap_ResNet50/Prediction/lstm/loc_state_feed:0': loc_state_feed}
+        fetches = ['DenseCap_ResNet50/Prediction/lstm/cap_probs:0',
                    self._predictions['bbox_pred'],
-                   'resnet_v1_50_4/lstm/cap_state:0',
-                   'resnet_v1_50_4/lstm/loc_state:0']
+                   'DenseCap_ResNet50/Prediction/lstm/cap_state:0',
+                   'DenseCap_ResNet50/Prediction/lstm/loc_state:0']
         cap_probs, bbox_pred, cap_state, loc_state = sess.run(fetches=fetches,
                                                               feed_dict=feed_dict)
 

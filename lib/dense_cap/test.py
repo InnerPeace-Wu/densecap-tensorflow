@@ -290,7 +290,6 @@ def vis_detections(im_path, im, captions, dets, thresh=0.5, save_path='vis'):
 
 def sentence(vocab, vocab_indices):
     # consider <eos> tag with id 0 in vocabulary
-    print(vocab_indices)
     for ei, idx in enumerate(vocab_indices):
         # End of sentence
         if idx == 2:  break

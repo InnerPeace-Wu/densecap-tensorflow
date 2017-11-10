@@ -43,7 +43,7 @@ def architecture_test():
     with tf.Session(config=tfconfig) as sess:
         init = tf.global_variables_initializer()
         sess.run(init)
-        out = sess.run('resnet_v1_50/lstm/cap_init_state:0', feed_dict=feed_dict)
+        out = sess.run('DenseCap_ResNet50/Prediction/lstm/cap_init_state:0', feed_dict=feed_dict)
         print(out.shape)
         # out = sess.run(output, feed_dict=feed_dict)
 

@@ -1,6 +1,7 @@
 #pycharm
 .idea/
 data/
+demo/
 
 tensorboard/
 output/

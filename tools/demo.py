@@ -45,7 +45,7 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='Test a Dense Caption network')
 
-    parser.add_argument('--weights', dest='weights',
+    parser.add_argument('--ckpt', dest='ckpt',
                         help='initialize with pretrained model weights',
                         default=None, type=str)
     parser.add_argument('--cfg', dest='cfg_file',
@@ -103,8 +103,8 @@ if __name__ == '__main__':
     print(im_paths)
 
     # read checkpoint file
-    if args.weights:
-        ckpt = tf.train.get_checkpoint_state(args.weights)
+    if args.ckpt:
+        ckpt = tf.train.get_checkpoint_state(args.ckpt)
     else:
         raise ValueError
 

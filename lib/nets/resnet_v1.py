@@ -51,7 +51,8 @@ class resnetv1(Network):
         self._feat_stride = [16, ]
         self._feat_compress = [1. / float(self._feat_stride[0]), ]
         self._num_layers = num_layers
-        self._scope = 'resnet_v1_%d' % num_layers
+        self._scope = 'DenseCap_ResNet%d' % num_layers
+        self._resnet_scope = 'resnet_v1_%d' % num_layers
         self._decide_blocks()
 
     def _crop_pool_layer(self, bottom, rois, name):
@@ -81,7 +82,7 @@ class resnetv1(Network):
     # Do the first few layers manually, because 'SAME' padding can behave inconsistently
     # for images of different sizes: sometimes 0, sometimes 1
     def _build_base(self):
-        with tf.variable_scope(self._scope):
+        with tf.variable_scope(self._resnet_scope):
             net = resnet_utils.conv2d_same(self._image, 64, 7, stride=2, scope='conv1')
             net = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]])
             net = slim.max_pool2d(net, [3, 3], stride=2, padding='VALID', scope='pool1')
@@ -100,7 +101,7 @@ class resnetv1(Network):
                                                   global_pool=False,
                                                   include_root_block=False,
                                                   reuse=reuse,
-                                                  scope=self._scope)
+                                                  scope=self._resnet_scope)
         if cfg.RESNET.FIXED_BLOCKS < 3:
             with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
                 net_conv, _ = resnet_v1.resnet_v1(net_conv,
@@ -108,7 +109,7 @@ class resnetv1(Network):
                                                   global_pool=False,
                                                   include_root_block=False,
                                                   reuse=reuse,
-                                                  scope=self._scope)
+                                                  scope=self._resnet_scope)
 
         self._act_summaries.append(net_conv)
         self._layers['head'] = net_conv
@@ -121,11 +122,11 @@ class resnetv1(Network):
     def _head_to_tail(self, pool5, is_training, reuse=None):
         with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
             fc7_bef_pool, _ = resnet_v1.resnet_v1(pool5,
-                                         self._blocks[-1:],
-                                         global_pool=False,
-                                         include_root_block=False,
-                                         reuse=reuse,
-                                         scope=self._scope)
+                                                  self._blocks[-1:],
+                                                  global_pool=False,
+                                                  include_root_block=False,
+                                                  reuse=reuse,
+                                                  scope=self._resnet_scope)
             # average pooling done by reduce_mean
             fc7 = tf.reduce_mean(fc7_bef_pool, axis=[1, 2])
 
@@ -167,7 +168,7 @@ class resnetv1(Network):
 
         for v in variables:
             # exclude the first conv layer to swap RGB to BGR
-            if v.name == (self._scope + '/conv1/weights:0'):
+            if v.name == (self._resnet_scope + '/conv1/weights:0'):
                 self._variables_to_fix[v.name] = v
                 continue
             if v.name.split(':')[0] in var_keep_dic:
@@ -182,8 +183,8 @@ class resnetv1(Network):
             with tf.device("/cpu:0"):
                 # fix RGB to BGR
                 conv1_rgb = tf.get_variable("conv1_rgb", [7, 7, 3, 64], trainable=False)
-                restorer_fc = tf.train.Saver({self._scope + "/conv1/weights": conv1_rgb})
+                restorer_fc = tf.train.Saver({self._resnet_scope + "/conv1/weights": conv1_rgb})
                 restorer_fc.restore(sess, pretrained_model)
 
-                sess.run(tf.assign(self._variables_to_fix[self._scope + '/conv1/weights:0'],
+                sess.run(tf.assign(self._variables_to_fix[self._resnet_scope + '/conv1/weights:0'],
                                    tf.reverse(conv1_rgb, [2])))
