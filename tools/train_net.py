@@ -134,7 +134,7 @@ def main():
     # logging.getLogger().addHandler(file_handler)
 
     print('------ called with args: -------')
-    pprint.pprint(args)
+    print.pprint(args)
 
     if args.cfg_file is not None:
         cfg_from_file(args.cfg_file)
@@ -142,6 +142,9 @@ def main():
         cfg_from_list(args.set_cfgs)
 
     print("runing with LIMIT_RAM: {}".format(cfg.LIMIT_RAM))
+
+    print("Using config:")
+    pprint.pprint(cfg)
 
     if not args.randomize:
         # fix the random seeds (numpy and caffe) for reproducibility

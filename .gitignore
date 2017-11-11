@@ -1,3 +1,5 @@
+#sublime
+*.sublime-project
 #pycharm
 .idea/
 data/

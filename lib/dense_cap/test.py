@@ -14,6 +14,7 @@ from lib.config import cfg, get_output_dir
 from lib.fast_rcnn.bbox_transform import clip_boxes, bbox_transform_inv
 import argparse
 from lib.utils.timer import Timer
+from six.moves import xrange
 import numpy as np
 import math
 import cv2
@@ -24,10 +25,10 @@ import os
 import sys
 # sys.path.append('lib/')
 from lib.utils.bbox_utils import region_merge, get_bbox_coord
+from lib.pycocoevalcap.vg_eval import VgEvalCap
 
 COCO_EVAL_PATH = 'coco-caption/'
 sys.path.append(COCO_EVAL_PATH)
-from lib.pycocoevalcap.vg_eval import VgEvalCap
 
 eps = 1e-10
 DEBUG = False
@@ -127,11 +128,10 @@ def _get_blobs(im, rois):
     return blobs, im_scale_factors
 
 
-def _greedy_search(embed_net, recurrent_net, forward_args, optional_args, proposal_n, max_timestep=15, \
+def _greedy_search(embed_net, recurrent_net, forward_args, optional_args, proposal_n, max_timestep=15,
                    pred_bbox=True, use_box_at=-1):
     """Do greedy search to find the regions and captions"""
     # Data preparation
-
 
     pred_captions = [None] * proposal_n
     pred_logprobs = [0.0] * proposal_n
@@ -202,7 +202,7 @@ def im_detect(sess, net, im, boxes=None, use_box_at=-1):
         boxes (ndarray): R x 4 array of object proposals or None (for RPN)
         use_box_at (int32): Use predicted box at a given timestep, default to the last one (use_box_at=-1)
     Returns:
-        scores (ndarray): R x 1 array of object class scores 
+        scores (ndarray): R x 1 array of object class scores
         pred_boxes (ndarray)): R x 4 array of predicted bounding boxes
         captions (list): length R list of list of word tokens (captions)
     """
@@ -292,7 +292,8 @@ def sentence(vocab, vocab_indices):
     # consider <eos> tag with id 0 in vocabulary
     for ei, idx in enumerate(vocab_indices):
         # End of sentence
-        if idx == 2:  break
+        if idx == 2:
+            break
     sentence = ' '.join([vocab[i] for i in vocab_indices[:ei]])
     # suffix = ' ' + vocab[2]
     # if sentence.endswith(suffix):
@@ -314,7 +315,7 @@ def test_im(sess, net, im_path, vocab, vis=True):
         vis_detections(im_path, im, pos_captions, pos_dets, save_path='./demo')
 
 
-def test_net(feature_net, embed_net, recurrent_net, imdb, vis=True, use_box_at=-1):
+def test_net(sess, net, imdb, vis=True, use_box_at=-1):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(imdb.image_index)
     if DEBUG:
@@ -323,33 +324,35 @@ def test_net(feature_net, embed_net, recurrent_net, imdb, vis=True, use_box_at=-
     #    all_regions[image] = list of {'image_id', caption', 'location', 'location_seq'}
     all_regions = [None] * num_images
     results = {}
-    output_dir = get_output_dir(imdb, feature_net)
+    output_dir = get_output_dir(imdb, None)
 
     # timers
     _t = {'im_detect': Timer(), 'misc': Timer()}
 
-    if not cfg.TEST.HAS_RPN:
-        roidb = imdb.roidb
+    # if not cfg.TEST.HAS_RPN:
+    # roidb = imdb.roidb
 
     # read vocabulary  & add <eos> tag
     vocab = list(imdb.get_vocabulary())
-    vocab.insert(0, '<EOS>')
+    vocab_extra = ['<EOS>', '<SOS>', '<PAD>']
+    for ex in vocab_extra:
+        vocab.insert(0, ex)
 
     for i in xrange(num_images):
         # filter out any ground truth boxes
         if cfg.TEST.HAS_RPN:
             box_proposals = None
-        else:
+        # else:
             # The roidb may contain ground-truth rois (for example, if the roidb
             # comes from the training or val split). We only want to evaluate
             # detection on the *non*-ground-truth rois. We select those the rois
             # that have the gt_classes field set to 0, which means there's no
             # ground truth.
-            box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
+            # box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
 
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes, captions = im_detect(feature_net, embed_net,
+        scores, boxes, captions = im_detect(sess, net,
                                             im, box_proposals,
                                             use_box_at=use_box_at)
         _t['im_detect'].toc()
@@ -357,8 +360,8 @@ def test_net(feature_net, embed_net, recurrent_net, imdb, vis=True, use_box_at=-
         _t['misc'].tic()
         # only one positive class
         if DEBUG:
-            print 'shape of scores'
-            print scores.shape
+            print('shape of scores')
+            print(scores.shape)
 
         pos_dets = np.hstack((boxes, scores[:, np.newaxis])) \
             .astype(np.float32, copy=False)
@@ -372,7 +375,7 @@ def test_net(feature_net, embed_net, recurrent_net, imdb, vis=True, use_box_at=-
         all_regions[i] = []
         # follow the format of baseline models routine
         for cap, box, prob in zip(pos_captions, pos_boxes, pos_scores):
-            anno = {'image_id': i, 'prob': format(prob, '.3f'), 'caption': cap, \
+            anno = {'image_id': i, 'prob': format(prob, '.3f'), 'caption': cap,
                     'location': box.tolist()}
             all_regions[i].append(anno)
         key = imdb.image_path_at(i).split('/')[-1]
@@ -383,16 +386,16 @@ def test_net(feature_net, embed_net, recurrent_net, imdb, vis=True, use_box_at=-
 
         _t['misc'].toc()
 
-        print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
-            .format(i + 1, num_images, _t['im_detect'].average_time,
-                    _t['misc'].average_time)
+        print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s'
+              .format(i + 1, num_images, _t['im_detect'].average_time,
+                      _t['misc'].average_time))
     # write file for evaluation with Torch code from Justin
-    print 'write to result.json'
+    print('write to result.json')
     det_file = os.path.join(output_dir, 'results.json')
     with open(det_file, 'w') as f:
         json.dump(results, f)
 
-    print 'Evaluating detections'
+    print('Evaluating detections')
 
     # gt_regions = imdb.get_gt_regions() # is a list
     gt_regions_merged = [None] * num_images

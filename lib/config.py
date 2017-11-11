@@ -240,7 +240,7 @@ __C.TEST.HAS_RPN = False
 # Test using these proposals
 __C.TEST.PROPOSAL_METHOD = 'gt'
 
-## NMS threshold used on RPN proposals
+# NMS threshold used on RPN proposals
 __C.TEST.RPN_NMS_THRESH = 0.7
 
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
@@ -356,6 +356,9 @@ __C.ALL_TEST_NUM_TRAIN = 100
 # number of validation examles for overall test
 __C.ALL_TEST_NUM_VAL = 100
 
+# number of test examples for overall test
+__C.ALL_TEST_NUM_TEST = 10
+
 #
 # LOSS options
 #
@@ -380,6 +383,7 @@ __C.LOSS.RPN_CLS_W = 0.1
 #
 # Functions
 #
+
 
 def get_output_dir(imdb, weights_filename):
     """Return the directory where experimental artifacts are placed.

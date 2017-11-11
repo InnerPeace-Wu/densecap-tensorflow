@@ -77,6 +77,10 @@ class visual_genome(imdb):
                 self._image_index = self._image_index[:cfg.ALL_TEST_NUM_TRAIN]
             elif image_set == 'val':
                 self._image_index = self._image_index[:cfg.ALL_TEST_NUM_VAL]
+            elif image_set == 'test':
+                self._image_index = self._image_index[:cfg.ALL_TEST_NUM_TEST]
+            else:
+                raise ValueError('Please check the name of the image set.')
 
         # Default to roidb handler
         self._roidb_handler = self.gt_roidb
@@ -136,7 +140,13 @@ class visual_genome(imdb):
         return [v for k, v in six.iteritems(self._gt_regions)]
 
     def get_gt_regions_index(self, index):
-        return self._gt_regions[index]
+        if cfg.LIMIT_RAM:
+            with open(pjoin(self.region_imset_path, '%s.json' % index), 'r') as f:
+                regions = json.load(f)
+        else:
+            regions = self._gt_regions[index]
+
+        return regions
 
     def get_vocabulary(self):
         return self._vocabulary_inverted
@@ -212,8 +222,8 @@ class visual_genome(imdb):
             else:
                 exclude_index.append(idx)
 
-            ## check for flip
-            if cfg.TRAIN.USE_FLIPPED:
+            # check for flipping only during training
+            if cfg.TRAIN.USE_FLIPPED and self._image_set == 'train':
                 flip_dict = flip_image(dictionary)
                 flip_id = flip_dict['image_id']
                 if is_valid_limitRam(pre_roidb(flip_dict)):
