@@ -21,6 +21,15 @@
 pip install -r lib/requirements.txt
 ```
 
+**For evaluation, one also need:**  
+* java 1.8.0
+* python 2.7(according to [coco-caption](https://github.com/tylin/coco-caption)
+
+To install java runtime by:  
+```commandline
+sudo apt-get install openjdk-8-jre
+```
+
 ## Preparing data
 
 * Firstly, check `lib/config.py` for `LIMIT_RAM` option. If one has RAM `less than 16G`, I recommend 

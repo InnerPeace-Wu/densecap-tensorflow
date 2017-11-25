@@ -50,6 +50,8 @@ __C.TRAIN.LEARNING_RATE = 0.001
 # Weight decay, for regularization
 __C.TRAIN.WEIGHT_DECAY = 0.
 
+# clip norm for gradient clipping(tf.clip_by_norm)
+__C.TRAIN.CLIP_NORM = 40.
 # Step size for reducing the learning rate, currently only support one step
 __C.TRAIN.STEPSIZE = [100000]
 
@@ -72,13 +74,13 @@ __C.TRAIN.SNAPSHOT_ITERS = 5000
 __C.TRAIN.SUMMARY_INTERVAL = 180
 
 # Whether to double the learning rate for bias
-__C.TRAIN.DOUBLE_BIAS = True
+__C.TRAIN.DOUBLE_BIAS = False
 
 # Whether to have weight decay on bias as well
 __C.TRAIN.BIAS_DECAY = False
 
 # learning rate exponentially decay rate
-__C.TRAIN.EXP_DECAY_RATE = 0.96
+__C.TRAIN.EXP_DECAY_RATE = 0.9
 
 # learning rate exponentially decay step size
 __C.TRAIN.EXP_DECAY_STEPS = 5000
@@ -269,8 +271,8 @@ __C.ROOT_DIR = osp.abspath(pjoin(osp.dirname(__file__), '..'))
 # Data directory
 # __C.DATA_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'data'))
 # TODO: delete testing options
-# __C.DATA_DIR = '/home/joe/git/visual_genome'
-__C.DATA_DIR = '/home/joe/git/visual_genome_test'
+__C.DATA_DIR = '/home/joe/git/visual_genome'
+# __C.DATA_DIR = '/home/joe/git/visual_genome_test'
 
 # Log directory
 __C.LOG_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'logs'))
@@ -330,6 +332,9 @@ __C.DEBUG_ALL = True
 # maximum words for training and testing
 __C.MAX_WORDS = 10
 
+# index of word "<EOS>" in vocablury
+__C.END_INDEX = 2
+
 # Default GPU device id
 __C.GPU_ID = 0
 
@@ -348,7 +353,7 @@ __C.CONTEXT_MODE = 'concat'
 __C.SAMPLE_NUM_FIXED_REGIONS = False
 
 # overall test, i.e. overfit minibatch
-__C.ALL_TEST = True
+__C.ALL_TEST = False
 
 # number of training examples for overall test
 __C.ALL_TEST_NUM_TRAIN = 100

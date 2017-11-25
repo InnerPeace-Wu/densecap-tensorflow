@@ -22,10 +22,11 @@ class vgg16(Network):
         Network.__init__(self)
         self._feat_stride = [16, ]
         self._feat_compress = [1. / float(self._feat_stride[0]), ]
-        self._scope = 'vgg_16'
+        self._scope = 'DenseCap_VGG16'
+        self._vgg_scope = 'vgg_16'
 
     def _image_to_head(self, is_training, reuse=None):
-        with tf.variable_scope(self._scope, self._scope, reuse=reuse):
+        with tf.variable_scope(self._vgg_scope, self._vgg_scope, reuse=reuse):
             net = slim.repeat(self._image, 2, slim.conv2d, 64, [3, 3],
                               trainable=False, scope='conv1')
             net = slim.max_pool2d(net, [2, 2], padding='SAME', scope='pool1')
@@ -47,7 +48,7 @@ class vgg16(Network):
         return net
 
     def _head_to_tail(self, pool5, is_training, reuse=None):
-        with tf.variable_scope(self._scope, self._scope, reuse=reuse):
+        with tf.variable_scope(self._vgg_scope, self._vgg_scope, reuse=reuse):
             pool5_flat = slim.flatten(pool5, scope='flatten')
             fc6 = slim.fully_connected(pool5_flat, 4096, scope='fc6')
             if is_training:
@@ -65,12 +66,12 @@ class vgg16(Network):
 
         for v in variables:
             # exclude the conv weights that are fc weights in vgg16
-            if v.name == (self._scope + '/fc6/weights:0') or \
-                            v.name == (self._scope + '/fc7/weights:0'):
+            if v.name == (self._vgg_scope + '/fc6/weights:0') or \
+                    v.name == (self._vgg_scope + '/fc7/weights:0'):
                 self._variables_to_fix[v.name] = v
                 continue
             # exclude the first conv layer to swap RGB to BGR
-            if v.name == (self._scope + '/conv1/conv1_1/weights:0'):
+            if v.name == (self._vgg_scope + '/conv1/conv1_1/weights:0'):
                 self._variables_to_fix[v.name] = v
                 continue
             if v.name.split(':')[0] in var_keep_dic:
@@ -88,16 +89,16 @@ class vgg16(Network):
                 fc6_conv = tf.get_variable("fc6_conv", [7, 7, 512, 4096], trainable=False)
                 fc7_conv = tf.get_variable("fc7_conv", [1, 1, 4096, 4096], trainable=False)
                 conv1_rgb = tf.get_variable("conv1_rgb", [3, 3, 3, 64], trainable=False)
-                restorer_fc = tf.train.Saver({self._scope + "/fc6/weights": fc6_conv,
-                                              self._scope + "/fc7/weights": fc7_conv,
-                                              self._scope + "/conv1/conv1_1/weights": conv1_rgb})
+                restorer_fc = tf.train.Saver({self._vgg_scope + "/fc6/weights": fc6_conv,
+                                              self._vgg_scope + "/fc7/weights": fc7_conv,
+                                              self._vgg_scope + "/conv1/conv1_1/weights": conv1_rgb})
                 restorer_fc.restore(sess, pretrained_model)
 
-                sess.run(tf.assign(self._variables_to_fix[self._scope + '/fc6/weights:0'], tf.reshape(fc6_conv,
-                                                                                                      self._variables_to_fix[
-                                                                                                          self._scope + '/fc6/weights:0'].get_shape())))
-                sess.run(tf.assign(self._variables_to_fix[self._scope + '/fc7/weights:0'], tf.reshape(fc7_conv,
-                                                                                                      self._variables_to_fix[
-                                                                                                          self._scope + '/fc7/weights:0'].get_shape())))
-                sess.run(tf.assign(self._variables_to_fix[self._scope + '/conv1/conv1_1/weights:0'],
+                sess.run(tf.assign(self._variables_to_fix[self._vgg_scope + '/fc6/weights:0'], tf.reshape(fc6_conv,
+                                                                                                          self._variables_to_fix[
+                                                                                                              self._vgg_scope + '/fc6/weights:0'].get_shape())))
+                sess.run(tf.assign(self._variables_to_fix[self._vgg_scope + '/fc7/weights:0'], tf.reshape(fc7_conv,
+                                                                                                          self._variables_to_fix[
+                                                                                                              self._vgg_scope + '/fc7/weights:0'].get_shape())))
+                sess.run(tf.assign(self._variables_to_fix[self._vgg_scope + '/conv1/conv1_1/weights:0'],
                                    tf.reverse(conv1_rgb, [2])))

@@ -127,6 +127,8 @@ def _get_blobs(im, rois):
         blobs['rois'] = _get_rois_blob(rois, im_scale_factors)
     return blobs, im_scale_factors
 
+# TODO: caffe version, not used
+
 
 def _greedy_search(embed_net, recurrent_net, forward_args, optional_args, proposal_n, max_timestep=15,
                    pred_bbox=True, use_box_at=-1):
@@ -294,11 +296,11 @@ def sentence(vocab, vocab_indices):
         # End of sentence
         if idx == 2:
             break
-    sentence = ' '.join([vocab[i] for i in vocab_indices[:ei]])
+    sentence = ' '.join([vocab[i] for i in vocab_indices[1:ei]])
     # suffix = ' ' + vocab[2]
     # if sentence.endswith(suffix):
     #     sentence = sentence[1:-len(suffix)]
-    return sentence[1:]
+    return sentence
 
 
 def test_im(sess, net, im_path, vocab, vis=True):

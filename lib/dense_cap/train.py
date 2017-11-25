@@ -151,39 +151,44 @@ class SolverWrapper(object):
             loss = layers['total_loss']
             # Set learning rate and momentum
             lr = tf.Variable(cfg.TRAIN.LEARNING_RATE, trainable=False)
-
+            self.global_step = tf.Variable(0, trainable=False)
             if cfg.TRAIN.LR_DIY_DECAY:
                 learning_rate = lr
             else:
-                self.global_step = tf.Variable(0, trainable=False)
-                learning_rate = tf.train.exponential_decay(lr, self.global_step,
+                learning_rate = tf.train.exponential_decay(cfg.TRAIN.LEARNING_RATE,
+                                                           self.global_step,
                                                            cfg.TRAIN.EXP_DECAY_STEPS,
                                                            cfg.TRAIN.EXP_DECAY_RATE,
                                                            staircase=True)
             if cfg.TRAIN.OPTIMIZER == 'sgd_m':
-                self.optimizer = tf.train.MomentumOptimizer(lr, cfg.TRAIN.MOMENTUM)
+                self.optimizer = tf.train.MomentumOptimizer(learning_rate, cfg.TRAIN.MOMENTUM)
             elif cfg.TRAIN.OPTIMIZER == 'adam':
-                self.optimizer = tf.train.AdadeltaOptimizer(learning_rate)
+                self.optimizer = tf.train.AdamOptimizer(learning_rate)
 
                 # must disable diy decay when using exponentially decay.
                 assert cfg.TRAIN.LR_DIY_DECAY == False
 
             # Compute the gradients with regard to the loss
             gvs = self.optimizer.compute_gradients(loss)
+            # gradient clipping
+            capped_gvs = [(tf.clip_by_norm(grad, cfg.TRAIN.CLIP_NORM), var)
+                          for grad, var in gvs]
             # Double the gradient of the bias if set
             if cfg.TRAIN.DOUBLE_BIAS:
                 final_gvs = []
                 with tf.variable_scope('Gradient_Mult') as scope:
-                    for grad, var in gvs:
+                    for grad, var in capped_gvs:
                         scale = 1.
                         if cfg.TRAIN.DOUBLE_BIAS and '/biases:' in var.name:
                             scale *= 2.
                         if not np.allclose(scale, 1.0):
                             grad = tf.multiply(grad, scale)
                         final_gvs.append((grad, var))
-                train_op = self.optimizer.apply_gradients(final_gvs)
+                train_op = self.optimizer.apply_gradients(final_gvs,
+                                                          global_step=self.global_step)
             else:
-                train_op = self.optimizer.apply_gradients(gvs)
+                train_op = self.optimizer.apply_gradients(capped_gvs,
+                                                          global_step=self.global_step)
 
             # We will handle the snapshots ourselves
             self.saver = tf.train.Saver(max_to_keep=100000)
@@ -283,7 +288,7 @@ class SolverWrapper(object):
     def train_model(self, sess, max_iters):
         # Build data layers for both training and validation set
         self.data_layer = RoIDataLayer(self.roidb)
-        self.data_layer_val = RoIDataLayer(self.valroidb,  random=True)
+        self.data_layer_val = RoIDataLayer(self.valroidb, random=True)
 
         # Construct the computation graph
         lr, train_op = self.construct_graph(sess)
@@ -295,9 +300,7 @@ class SolverWrapper(object):
         if lsf == 0:
             rate, last_snapshot_iter, stepsizes, np_paths, ss_paths = self.initialize(sess)
         else:
-            rate, last_snapshot_iter, stepsizes, np_paths, ss_paths = self.restore(sess,
-                                                                                   str(sfiles[-1]),
-                                                                                   str(nfiles[-1]))
+            rate, last_snapshot_iter, stepsizes, np_paths, ss_paths = self.restore(sess, str(sfiles[-1]), str(nfiles[-1]))
         timer = Timer()
         iter = last_snapshot_iter + 1
         last_summary_time = time.time()
@@ -323,7 +326,7 @@ class SolverWrapper(object):
             if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
                 # Compute the graph with summary
                 rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, \
-                caption_loss, total_loss, summary = \
+                    caption_loss, total_loss, summary = \
                     self.net.train_step_with_summary(sess, blobs, train_op)
                 self.writer.add_summary(summary, float(iter))
                 # Also check the summary on the validation set
@@ -334,7 +337,7 @@ class SolverWrapper(object):
             else:
                 # Compute the graph without summary
                 rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, \
-                caption_loss, total_loss = \
+                    caption_loss, total_loss = \
                     self.net.train_step(sess, blobs, train_op)
             timer.toc()
 
@@ -345,7 +348,7 @@ class SolverWrapper(object):
                 else:
                     learning_rate = sess.run(lr)
                 print('iter: %d / %d, total loss: %.6f\n >>> caption loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
-                      '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
+                      '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' %
                       (iter, max_iters, total_loss, caption_loss, rpn_loss_cls,
                        rpn_loss_box, loss_cls, loss_box, learning_rate.eval()))
                 print('speed: {:.3f}s / iter'.format(timer.average_time))
@@ -374,7 +377,7 @@ class SolverWrapper(object):
         if not os.path.exists(save_path):
             os.makedirs(save_path)
         # mean_values = np.array([[[102.9801, 115.9465, 122.7717]]])
-        im = im + cfg.PIXEL_MEANS # offset to original values
+        im = im + cfg.PIXEL_MEANS  # offset to original values
 
         for i in xrange(len(regions)):
             bbox = regions[i, :4]

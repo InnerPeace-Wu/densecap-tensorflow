@@ -94,6 +94,8 @@ class resnetv1(Network):
         # Now the base is always fixed during training
         with slim.arg_scope(resnet_arg_scope(is_training=False)):
             net_conv = self._build_base()
+
+        print("Fixing %s blocks." % cfg.RESNET.FIXED_BLOCKS)
         if cfg.RESNET.FIXED_BLOCKS > 0:
             with slim.arg_scope(resnet_arg_scope(is_training=False)):
                 net_conv, _ = resnet_v1.resnet_v1(net_conv,

@@ -35,18 +35,18 @@ VG_PATH = '/home/joe/git/VG_raw_data'
 VG_IMAGE_ROOT = '%s/images_test' % VG_PATH
 
 # TODO: delete testing option
-cfg.LIMIT_RAM = False
+cfg.LIMIT_RAM = True
 if cfg.LIMIT_RAM:
     # regions directory path
-    # VG_REGION_PATH = '%s/%s/regions' % (VG_PATH, VG_VERSION)
-    VG_REGION_PATH = '%s/%s/regions_test' % (VG_PATH, VG_VERSION)
+    VG_REGION_PATH = '%s/%s/regions' % (VG_PATH, VG_VERSION)
+    # VG_REGION_PATH = '%s/%s/regions_test' % (VG_PATH, VG_VERSION)
 else:
     # read whole regions with a json file
     # VG_REGION_PATH = '%s/%s/region_descriptions.json' % (VG_PATH, VG_VERSION)
     VG_REGION_PATH = '%s/%s/region_descriptions_test.json' % (VG_PATH, VG_VERSION)
 
 VG_METADATA_PATH = '%s/%s/image_data.json' % (VG_PATH, VG_VERSION)
-vocabulary_size = cfg.VOCAB_SIZE # 10497#from dense caption paper
+vocabulary_size = cfg.VOCAB_SIZE  # 10497#from dense caption paper
 HAS_VOCAB = False
 # TODO: delete testing option
 OUTPUT_DIR = '/home/joe/git/visual_genome_test/%s' % VG_VERSION
@@ -99,9 +99,9 @@ class VGDataProcessor:
             for obj in item['regions']:
                 # remove invalid regions
                 if obj['x'] < 0 or obj['y'] < 0 or \
-                                obj['width'] <= 0 or obj['height'] <= 0 or \
-                                        obj['x'] + obj['width'] >= image_info['width'] or \
-                                        obj['y'] + obj['height'] >= image_info['height']:
+                        obj['width'] <= 0 or obj['height'] <= 0 or \
+                        obj['x'] + obj['width'] >= image_info['width'] or \
+                        obj['y'] + obj['height'] >= image_info['height']:
                     num_invalid_bbox += 1
                     continue
                 phrase = obj['phrase'].strip().encode('ascii', 'ignore').lower()
@@ -119,7 +119,7 @@ class VGDataProcessor:
                 phrases_all.append(obj['phrase_tokens'])
             im_path = '%s/%d.jpg' % (VG_IMAGE_ROOT, im_id)
             Dict = {'path': im_path, 'regions': regions_filt, 'id': im_id,
-                   'height': image_info['height'], 'width': image_info['width']}
+                    'height': image_info['height'], 'width': image_info['width']}
             if cfg.LIMIT_RAM:
                 with open(self.save_path + '/%s.json' % im_id, 'wb') as f:
                     json.dump(Dict, f)
@@ -144,7 +144,7 @@ class VGDataProcessor:
         self.vocabulary_inverted = [x[0] for x in vocab_freq]
         self.vocabulary_inverted.insert(0, UNK_IDENTIFIER)
         print("Using vocabulary size %d." % vocabulary_size)
-        print("The least frequent word in our vocabulary is '%s' and appeared %d times." % \
+        print("The least frequent word in our vocabulary is '%s' and appeared %d times." %
               (vocab_freq[-1][0], vocab_freq[-1][1]))
 
     def dump_vocabulary(self, vocab_filename):

@@ -134,6 +134,7 @@ stream = [s + 1 for s in stream]
 * add self.image_index to visual_genome class for filterd indexes. **Update:** change to self._image_index.
 
 * finish roidatalayer, **Read image in BGR order**. Example of `data.forward()` with 1.jpg
+  * gt_phrases shape: num_regions x 10(max_words)
 
 ```json
 {

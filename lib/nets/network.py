@@ -26,7 +26,7 @@ from lib.layers.anchor_target_layer import anchor_target_layer
 from lib.layers.proposal_target_layer import proposal_target_layer
 from lib.layers.proposal_target_single_class_layer import proposal_target_single_class_layer
 from lib.layers.sentence_data_layer import sentence_data_layer
-from lib.utils.visualization import draw_bounding_boxes
+from lib.utils.visualization import draw_bounding_boxes, draw_densecap
 
 from lib.config import cfg
 
@@ -77,10 +77,22 @@ class Network(object):
         if self._gt_image is None:
             self._add_gt_image()
         image = tf.py_func(draw_bounding_boxes,
-                           [self._gt_image, self._gt_boxes, self._im_info],
+                           [self._gt_image, self._gt_boxes, self._im_info, self._gt_phrases],
                            tf.float32, name="gt_boxes")
 
         return tf.summary.image('GROUND_TRUTH', image)
+
+    def _add_image_summary(self):
+        # add back mean
+        image = self._image + cfg.PIXEL_MEANS
+        # BGR to RGB (opencv uses BGR)
+        resized = tf.image.resize_bilinear(image, tf.to_int32(self._im_info[:2] / self._im_info[2]))
+        gt_image = tf.reverse(resized, axis=[-1])
+        img_wcap = tf.py_func(draw_densecap, [gt_image, self._predictions['cls_prob'],
+            self._predictions['rois'], self._im_info, self._predictions['cap_probs'],
+            self._predictions['bbox_pred']], tf.float32, name='image_summary')
+
+        return tf.summary.image('TEMP_OUT', img_wcap)
 
     def _add_act_summary(self, tensor):
         tf.summary.histogram('ACT/' + tensor.op.name + '/activations', tensor)
@@ -231,12 +243,12 @@ class Network(object):
 
         with tf.variable_scope(name) as scope:
             rois, roi_scores, labels, bbox_targets, \
-            bbox_inside_weights, bbox_outside_weights, clss, phrases = tf.py_func(
-                proposal_target_single_class_layer,
-                [rois, roi_scores, self._gt_boxes, self._gt_phrases],
-                [tf.float32, tf.float32, tf.float32, tf.float32,
-                 tf.float32, tf.float32, tf.int32, tf.int32],
-                name="proposal_target_single_class")
+                bbox_inside_weights, bbox_outside_weights, clss, phrases = tf.py_func(
+                    proposal_target_single_class_layer,
+                    [rois, roi_scores, self._gt_boxes, self._gt_phrases],
+                    [tf.float32, tf.float32, tf.float32, tf.float32,
+                     tf.float32, tf.float32, tf.int32, tf.int32],
+                    name="proposal_target_single_class")
 
             rois.set_shape([None, 5])
             roi_scores.set_shape([None])
@@ -327,6 +339,9 @@ class Network(object):
                                               initializer=initializer,
                                               trainable=is_training
                                               )
+            self._inverse_embed = tf.get_variable('inverse_embed',
+                                                  [cfg.EMBED_DIM, cfg.VOCAB_SIZE + 3],
+                                                  initializer=initializer)
             embed_input_sentence = tf.nn.embedding_lookup(self._embedding,
                                                           input_sentence)
 
@@ -375,8 +390,8 @@ class Network(object):
                 #                         [tf.shape(caption_outputs)[0], 1, 1])
                 # predict_caption = tf.matmul(caption_outputs, inv_embedding)
 
-                cap_logits = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
-                                                tf.transpose(self._embedding))
+                # cap_logits = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
+                                       # tf.transpose(self._embedding))
                 # cap_logits = tf.reshape(predict_cap_reshape,
                 #                         [-1, cfg.TIME_STEPS, cfg.VOCAB_SIZE + 3])
 
@@ -417,11 +432,15 @@ class Network(object):
                 tf.concat(values=loc_state_tuple, axis=1, name='loc_state')
                 loc_out_slice = cap_outputs
 
-                # caption logits
-                cap_logits = tf.matmul(cap_outputs, tf.transpose(self._embedding), name='cap_logits')
-                tf.nn.softmax(cap_logits, name='cap_probs')
             else:
                 raise NotImplementedError
+
+            # caption logits
+            # cap_logits = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
+                # tf.transpose(self._embedding), name='cap_logits')
+            cap_logits = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
+                self._inverse_embed, name='cap_logits')
+            cap_probs = tf.nn.softmax(cap_logits, name='cap_probs')
 
         bbox_pred = slim.fully_connected(loc_out_slice, 4,
                                          weights_initializer=initializer,
@@ -429,6 +448,7 @@ class Network(object):
                                          activation_fn=None, scope='bbox_pred')
 
         self._predictions['bbox_pred'] = bbox_pred
+        self._predictions['cap_probs'] = cap_probs
         self._predictions['predict_caption'] = cap_logits
 
         if cfg.DEBUG_ALL:
@@ -520,7 +540,7 @@ class Network(object):
         abs_in_box_diff = tf.abs(in_box_diff)
         smoothL1_sign = tf.stop_gradient(tf.to_float(tf.less(abs_in_box_diff, 1. / sigma_2)))
         in_loss_box = tf.pow(in_box_diff, 2) * (sigma_2 / 2.) * smoothL1_sign \
-                      + (abs_in_box_diff - (0.5 / sigma_2)) * (1. - smoothL1_sign)
+            + (abs_in_box_diff - (0.5 / sigma_2)) * (1. - smoothL1_sign)
         out_loss_box = bbox_outside_weights * in_loss_box
         loss_box = tf.reduce_mean(tf.reduce_sum(
             out_loss_box,
@@ -581,10 +601,10 @@ class Network(object):
             self._losses['caption_loss'] = caption_loss
 
             loss = cfg.LOSS.CAP_W * caption_loss \
-                   + cfg.LOSS.CLS_W * clss_cross_entropy \
-                   + cfg.LOSS.BBOX_W * loss_box \
-                   + cfg.LOSS.RPN_CLS_W * rpn_cross_entropy \
-                   + cfg.LOSS.RPN_BBOX_W * rpn_loss_box
+                + cfg.LOSS.CLS_W * clss_cross_entropy \
+                + cfg.LOSS.BBOX_W * loss_box \
+                + cfg.LOSS.RPN_CLS_W * rpn_cross_entropy \
+                + cfg.LOSS.RPN_BBOX_W * rpn_loss_box
             regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
             self._losses['total_loss'] = loss + regularization_loss
 
@@ -692,7 +712,7 @@ class Network(object):
             biases_regularizer = tf.no_regularizer
 
         # list as many types of layers as possible, even if they are not used now
-        with arg_scope([slim.conv2d, slim.conv2d_in_plane, \
+        with arg_scope([slim.conv2d, slim.conv2d_in_plane,
                         slim.conv2d_transpose, slim.separable_conv2d, slim.fully_connected],
                        weights_regularizer=weights_regularizer,
                        biases_regularizer=biases_regularizer,
@@ -717,7 +737,8 @@ class Network(object):
 
             val_summaries = []
             with tf.device("/cpu:0"):
-                val_summaries.append(self._add_gt_image_summary())
+                # val_summaries.append(self._add_gt_image_summary())
+                val_summaries.append(self._add_image_summary())
                 for key, var in self._event_summaries.items():
                     val_summaries.append(tf.summary.scalar(key, var))
                 for key, var in self._score_summaries.items():
@@ -764,8 +785,8 @@ class Network(object):
                      self._im_info: im_info}
 
         cap_init_state, loc_init_state, cls_prob, rois = sess.run([
-            'DenseCap_ResNet50/Prediction/lstm/cap_init_state:0',
-            'DenseCap_ResNet50/Prediction/lstm/loc_init_state:0',
+            '%s/Prediction/lstm/cap_init_state:0' % self._scope,
+            '%s/Prediction/lstm/loc_init_state:0' % self._scope,
             self._predictions['cls_prob'],
             self._predictions['rois']],
             feed_dict=feed_dict)
@@ -773,13 +794,13 @@ class Network(object):
         return cap_init_state, loc_init_state, cls_prob, rois
 
     def inference_step(self, sess, input_feed, cap_state_feed, loc_state_feed):
-        feed_dict = {'DenseCap_ResNet50/Extraction/input_feed:0': input_feed,
-                     'DenseCap_ResNet50/Prediction/lstm/cap_state_feed:0': cap_state_feed,
-                     'DenseCap_ResNet50/Prediction/lstm/loc_state_feed:0': loc_state_feed}
-        fetches = ['DenseCap_ResNet50/Prediction/lstm/cap_probs:0',
+        feed_dict = {'%s/Extraction/input_feed:0' % self._scope: input_feed,
+                     '%s/Prediction/lstm/cap_state_feed:0' % self._scope: cap_state_feed,
+                     '%s/Prediction/lstm/loc_state_feed:0' % self._scope: loc_state_feed}
+        fetches = ['%s/Prediction/lstm/cap_probs:0' % self._scope,
                    self._predictions['bbox_pred'],
-                   'DenseCap_ResNet50/Prediction/lstm/cap_state:0',
-                   'DenseCap_ResNet50/Prediction/lstm/loc_state:0']
+                   '%s/Prediction/lstm/cap_state:0' % self._scope,
+                   '%s/Prediction/lstm/loc_state:0' % self._scope]
         cap_probs, bbox_pred, cap_state, loc_state = sess.run(fetches=fetches,
                                                               feed_dict=feed_dict)
 
@@ -800,17 +821,17 @@ class Network(object):
                      self._gt_phrases: blobs['gt_phrases']}
 
         rpn_loss_cls, rpn_loss_box, loss_cls, \
-        loss_box, caption_loss, loss, \
-        _ = sess.run([self._losses["rpn_cross_entropy"],
-                      self._losses['rpn_loss_box'],
-                      self._losses['clss_cross_entropy'],
-                      self._losses['loss_box'],
-                      self._losses['caption_loss'],
-                      self._losses['total_loss'],
-                      train_op],
-                     feed_dict=feed_dict)
+            loss_box, caption_loss, loss, \
+            _ = sess.run([self._losses["rpn_cross_entropy"],
+                          self._losses['rpn_loss_box'],
+                          self._losses['clss_cross_entropy'],
+                          self._losses['loss_box'],
+                          self._losses['caption_loss'],
+                          self._losses['total_loss'],
+                          train_op],
+                         feed_dict=feed_dict)
         return rpn_loss_cls, rpn_loss_box, loss_cls, \
-               loss_box, caption_loss, loss
+            loss_box, caption_loss, loss
 
     def train_step_with_summary(self, sess, blobs, train_op):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
@@ -818,19 +839,19 @@ class Network(object):
                      self._gt_phrases: blobs['gt_phrases']}
 
         rpn_loss_cls, rpn_loss_box, loss_cls, \
-        loss_box, caption_loss, loss, \
-        summary, _ = sess.run([self._losses["rpn_cross_entropy"],
-                               self._losses['rpn_loss_box'],
-                               self._losses['clss_cross_entropy'],
-                               self._losses['loss_box'],
-                               self._losses['caption_loss'],
-                               self._losses['total_loss'],
-                               self._summary_op,
-                               train_op],
-                              feed_dict=feed_dict)
+            loss_box, caption_loss, loss, \
+            summary, _ = sess.run([self._losses["rpn_cross_entropy"],
+                                   self._losses['rpn_loss_box'],
+                                   self._losses['clss_cross_entropy'],
+                                   self._losses['loss_box'],
+                                   self._losses['caption_loss'],
+                                   self._losses['total_loss'],
+                                   self._summary_op,
+                                   train_op],
+                                  feed_dict=feed_dict)
 
         return rpn_loss_cls, rpn_loss_box, loss_cls, \
-               loss_box, caption_loss, loss, summary
+            loss_box, caption_loss, loss, summary
 
     def train_step_no_return(self, sess, blobs, train_op):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],

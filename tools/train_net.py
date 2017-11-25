@@ -134,7 +134,7 @@ def main():
     # logging.getLogger().addHandler(file_handler)
 
     print('------ called with args: -------')
-    print.pprint(args)
+    pprint.pprint(args)
 
     if args.cfg_file is not None:
         cfg_from_file(args.cfg_file)
