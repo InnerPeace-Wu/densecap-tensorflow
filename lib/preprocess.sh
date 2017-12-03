@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-set -e
-set -x
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]; do
@@ -35,11 +33,11 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-apt-get -y update
-apt-get -y install python-pip
-pip install tqdm
 
 if [ -d "/valohai/inputs" ]; then
+    apt-get -y update
+    apt-get -y install python-pip
+    pip install tqdm
     cd /valohai/inputs
     mkdir ${VERSION}
     unzip image_meta/image_data.json.zip -d ./${VERSION}
