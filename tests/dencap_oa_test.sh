@@ -45,7 +45,8 @@ if [ -d '/valohai/outputs' ]; then
     pip install --upgrade pip
     pip install -r requirements.txt
     cd /valohai/inputs
-    tar -xvzf ./vg_data/visual_genome.tar.gz
+    tar -xvzf ./vg_data/visual_genome.tar.gz -C
+    mv /valohai/inputs/visual_genome/ ./
     mkdir ./images
     unzip -xvzf image_1/images.zip -d ./images
     unzip -xvzf image_2/images2.zip -d ./images
