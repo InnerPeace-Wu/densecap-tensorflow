@@ -10,11 +10,9 @@ mkdir ./images
 unzip -xvzf image_1/images.zip -d ./images
 unzip -xvzf image_2/images2.zip -d ./images
 ls
-ckpt_path='/valohai/inputs/resnet'
-data_dir='/valohai/inputs/visual_genome'
 cd /valohai/repository
 cd lib
 make
 cd ..
-
+bash ./tests/dencap_oa_test.sh {parameters}
 tar -czvf /valohai/outputs/output.tar.gz ./output
