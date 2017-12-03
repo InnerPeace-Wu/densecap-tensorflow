@@ -12,7 +12,7 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
         -p|--path)
-        PATH=$2
+        IN_PATH=$2
         shift
         shift
         ;;
@@ -35,8 +35,8 @@ done
 
 
 if [ -d "/valohai/inputs" ]; then
-    apt-get -y update
-    apt-get -y install python-pip
+    # apt-get -y update
+    # apt-get -y install python-pip
     pip install tqdm
     cd /valohai/inputs
     mkdir ${VERSION}
@@ -44,14 +44,13 @@ if [ -d "/valohai/inputs" ]; then
     unzip regions/region_descriptions.json.zip -d ./${VERSION}
     cd /valohai/repository/lib
     time python2 preprocess.py --version ${VERSION} \
-        --path ${PATH} \
+        --path ${IN_PATH} \
         --output_dir ${OUTPUT_DIR} \
         --max_words ${MAX_WORDS}
 
     tar -czvf /valohai/outputs/visual_genome.tar.gz /valohai/inputs/${OUTPUT_DIR}
     # comment it if one already have data stored in S3
     mv regions/region_descriptions.json.zip /valohai/outputs
-
 fi
 
 
