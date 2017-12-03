@@ -41,6 +41,7 @@ if [ -d '/valohai/outputs' ]; then
     LOG="/valohai/outputs/${NET}_${TRAIN_IMDB}_test.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
     # prapare data
     apt-get -y update
+    pip install --upgrade pip
     pip install -r requirements.txt
     cd /valohai/inputs
     tar -xvzf ./vg_data/visual_genome.tar.gz

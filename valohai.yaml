@@ -40,7 +40,7 @@
 - step:
     name: train model
     image: gcr.io/tensorflow/tensorflow:1.3.0-devel-gpu
-    command: bash ./tests/densecap_oa_test.sh {parameters}
+    command: bash ./tests/dencap_oa_test.sh {parameters}
     inputs:
       - name: vg_data
         default: ""
