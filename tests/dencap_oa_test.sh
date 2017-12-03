@@ -39,24 +39,6 @@ esac
 
 if [ -d '/valohai/outputs' ]; then
     LOG="/valohai/outputs/${NET}_${TRAIN_IMDB}_test.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
-    # prapare data
-    pip install opencv-python
-    apt-get -y update && apt-get install -y libsm6 libxext6
-    pip install --upgrade pip
-    pip install -r requirements.txt
-    cd /valohai/inputs
-    tar -xvzf ./vg_data/visual_genome.tar.gz
-    mv /valohai/inputs/visual_genome/ ./
-    mkdir ./images
-    unzip -xvzf image_1/images.zip -d ./images
-    unzip -xvzf image_2/images2.zip -d ./images
-    ls
-    ckpt_path='/valohai/inputs/resnet'
-    data_dir='/valohai/inputs/visual_genome'
-    cd /valohai/repository
-    cd lib
-    make
-    cd ..
 else
     LOG="tests/logs/${NET}_${TRAIN_IMDB}_test.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 fi
@@ -72,8 +54,3 @@ time python ./tools/train_net.py \
     --cfg scripts/dense_cap_config.yml \
     --data_dir ${data_dir} \
     --net ${NET}
-
-if [ -d '/valohai/outputs']; then
-    tar -czvf /valohai/outputs/output.tar.gz ./output
-fi
-
