@@ -35,9 +35,6 @@ from lib.limit_ram.utils import is_valid_limitRam
 DEBUG = False
 USE_CACHE = True
 UNK_IDENTIFIER = '<unk>'
-# TODO: delete testing option
-DEFAULT_PATH = '/home/joe/git/visual_genome'
-# DEFAULT_PATH = '/home/joe/git/visual_genome_test'
 
 
 class visual_genome(imdb):
@@ -46,12 +43,12 @@ class visual_genome(imdb):
         # image_set from ['train', 'val', 'test']
         self._image_set = image_set
 
-        self._data_path = '%s/%s' % (DEFAULT_PATH, version)
+        self._data_path = '%s/%s' % (cfg.DATA_DIR, version)
         cfg.CACHE_DIR = self._data_path
 
         if cfg.LIMIT_RAM:
             # used for limit memory reading mode
-            self._cache_path = '%s/%s_cache' % (DEFAULT_PATH, version)
+            self._cache_path = '%s/%s_cache' % (cfg.DATA_DIR, version)
             # return path of directory
             self.region_imset_path = os.path.join(self._data_path,
                                                   '%s_gt_regions' % image_set)

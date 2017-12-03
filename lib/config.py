@@ -272,7 +272,6 @@ __C.ROOT_DIR = osp.abspath(pjoin(osp.dirname(__file__), '..'))
 # __C.DATA_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'data'))
 # TODO: delete testing options
 __C.DATA_DIR = '/home/joe/git/visual_genome'
-# __C.DATA_DIR = '/home/joe/git/visual_genome_test'
 
 # Log directory
 __C.LOG_DIR = osp.abspath(pjoin(__C.ROOT_DIR, 'logs'))
