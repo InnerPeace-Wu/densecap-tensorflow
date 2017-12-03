@@ -50,7 +50,9 @@ if [ -d '/valohai/outputs' ]; then
     ckpt_path='/valohai/inputs/resnet'
     data_dir='/valohai/inputs/visual_genome'
     cd /valohai/repository
-    python lib/setup.py
+    cd lib
+    make
+    cd ..
 else
     LOG="tests/logs/${NET}_${TRAIN_IMDB}_test.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 fi
