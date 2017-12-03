@@ -45,8 +45,7 @@ if [ -d '/valohai/outputs' ]; then
     cd /valohai/inputs
     tar -xvzf ./vg_data/visual_genome.tar.gz
     mkdir ./images
-    unzip -xvzf images.zip -d ./images
-    unzip -xvzf images2.zip -d ./images
+    unzip -xvzf image_1/images.zip -d ./images
     ckpt_path='/valohai/inputs/resnet'
     data_dir='/valohai/inputs/visual_genome'
     cd /valohai/repository
