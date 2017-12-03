@@ -40,7 +40,7 @@ esac
 if [ -d '/valohai/outputs' ]; then
     LOG="/valohai/outputs/${NET}_${TRAIN_IMDB}_test.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
     # prapare data
-    apip install opencv-python
+    pip install opencv-python
     apt-get -y update && apt-get install -y libsm6 libxext6
     pip install --upgrade pip
     pip install -r requirements.txt
