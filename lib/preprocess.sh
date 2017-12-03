@@ -35,6 +35,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+apt-get -y update
+apt-get -y install python-pip
 pip install tqdm
 
 if [ -d "/valohai/inputs" ]; then
