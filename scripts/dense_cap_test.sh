@@ -8,7 +8,7 @@
 
 # TODO: change the test procedure.
 GPU_ID=0
-CKPT="/home/joe/git/densecap/output/dense_cap/vg_1.2_train"
+CKPT="/home/joe/git/densecap/output/dense_cap_all/vg_1.2_train"
 TEST_IMDB="vg_1.2_test"
 PT_DIR="dense_cap"
 time python ./tools/test_net.py  \

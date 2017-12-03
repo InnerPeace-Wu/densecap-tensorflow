@@ -87,9 +87,9 @@ def draw_bounding_boxes(image, gt_boxes, im_info, phrases):
     vocab_path = '%s/vocabulary.txt' % cfg.CACHE_DIR
     with open(vocab_path, 'r') as f:
         vocab = [line.strip() for line in f]
-    vocab_extra = ['<EOS>', '<SOS>', '<PAD>']
-    for ex in vocab_extra:
-        vocab.insert(0, ex)
+    # vocab_extra = ['<EOS>', '<SOS>', '<PAD>']
+    # for ex in vocab_extra:
+    #     vocab.insert(0, ex)
     for idx, i in enumerate(show_ids):
         # this_class = int(gt_boxes_new[i, 4])
         # phrase = phrases[i] if len(phrases[i]) < cfg.TIME_STEPS else phrases[1:]

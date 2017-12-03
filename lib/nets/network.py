@@ -339,9 +339,9 @@ class Network(object):
                                               initializer=initializer,
                                               trainable=is_training
                                               )
-            self._inverse_embed = tf.get_variable('inverse_embed',
-                                                  [cfg.EMBED_DIM, cfg.VOCAB_SIZE + 3],
-                                                  initializer=initializer)
+            # self._inverse_embed = tf.get_variable('inverse_embed',
+                                                  # [cfg.EMBED_DIM, cfg.VOCAB_SIZE + 3],
+                                                  # initializer=initializer)
             embed_input_sentence = tf.nn.embedding_lookup(self._embedding,
                                                           input_sentence)
 
@@ -436,10 +436,10 @@ class Network(object):
                 raise NotImplementedError
 
             # caption logits
-            # cap_logits = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
-                # tf.transpose(self._embedding), name='cap_logits')
             cap_logits = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
-                self._inverse_embed, name='cap_logits')
+                tf.transpose(self._embedding), name='cap_logits')
+            # cap_logits = tf.matmul(tf.reshape(cap_outputs, [-1, cfg.EMBED_DIM]),
+                # self._inverse_embed, name='cap_logits')
             cap_probs = tf.nn.softmax(cap_logits, name='cap_probs')
 
         bbox_pred = slim.fully_connected(loc_out_slice, 4,

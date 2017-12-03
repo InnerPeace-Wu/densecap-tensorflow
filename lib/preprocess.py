@@ -12,52 +12,54 @@ Preprocessing of visual genome dataset, including vocabularity generation,
 removing invalid bboxes and phrases, tokenization, and result saving
 """
 
+import sys
+sys.path.append("..")
+
 import itertools
 import os
 import string
-# import sys
-# sys.path.append('..')
 import json
 import time
 import numpy as np
 from six.moves import xrange
 from collections import Counter
-from lib.config import cfg
+from config import cfg
 from info.read_splits import read_splits
 import os.path as osp
 from tqdm import tqdm
+import argparse
 
-VG_VERSION = '1.2'
+parser = argparse.ArgumentParser(description='Preprocessing visual genome')
+parser.add_argument('--version', dest='version', type=float, default=1.2, help='the version of visual genome dataset.')
 # NOTE: one need to change the path accordingly
-VG_PATH = '/home/joe/git/VG_raw_data'
-# TODO: delete testing option
-# VG_IMAGE_ROOT = '%s/images' % VG_PATH
-VG_IMAGE_ROOT = '%s/images_test' % VG_PATH
+parser.add_argument('--path', dest='path', type=str, default='/home/joe/git/VG_raw_data', help='directory saving the raw dataset')
+parser.add_argument('--output_dir', dest='output_dir', type=str, default='/home/joe/git/visual_genome', help='output directory of data files')
+parser.add_argument('--limit_ram', dest='limit_ram', action='store_true')
+parser.add_argument('--max_words', dest='max_words', type=int, default=10, help='maximum length of words for training.')
+args = parser.parse_args()
 
-# TODO: delete testing option
-cfg.LIMIT_RAM = True
+MAX_WORDS = args.max_words
+VG_VERSION = args.version
+VG_PATH = args.path
+VG_IMAGE_ROOT = '%s/images' % VG_PATH
+cfg.LIMIT_RAM = args.limit_ram
 if cfg.LIMIT_RAM:
     # regions directory path
     VG_REGION_PATH = '%s/%s/regions' % (VG_PATH, VG_VERSION)
-    # VG_REGION_PATH = '%s/%s/regions_test' % (VG_PATH, VG_VERSION)
 else:
     # read whole regions with a json file
-    # VG_REGION_PATH = '%s/%s/region_descriptions.json' % (VG_PATH, VG_VERSION)
-    VG_REGION_PATH = '%s/%s/region_descriptions_test.json' % (VG_PATH, VG_VERSION)
+    VG_REGION_PATH = '%s/%s/region_descriptions.json' % (VG_PATH, VG_VERSION)
 
 VG_METADATA_PATH = '%s/%s/image_data.json' % (VG_PATH, VG_VERSION)
 vocabulary_size = cfg.VOCAB_SIZE  # 10497#from dense caption paper
 HAS_VOCAB = False
-# TODO: delete testing option
-OUTPUT_DIR = '/home/joe/git/visual_genome_test/%s' % VG_VERSION
+OUTPUT_DIR = args.output_dir + '/%s' % VG_VERSION
 # In default, we read from json file
 READ_SPLITS_FROM_TXT = False
 SPLITS_JSON = osp.join(cfg.ROOT_DIR, 'info/densecap_splits.json')
 
 # UNK_IDENTIFIER is the word used to identify unknown words
 UNK_IDENTIFIER = '<unk>'
-
-MAX_WORDS = cfg.MAX_WORDS
 
 
 class VGDataProcessor:
@@ -173,10 +175,8 @@ def process_dataset(split_name, vocab=None):
 
     # 2. read split ids from json file
     else:
-        # with open(SPLITS_JSON, 'r') as f:
-        #     split_image_ids = json.load(f)[split_name]
-        # TODO: delete testing option
-        split_image_ids = [1, 2]
+        with open(SPLITS_JSON, 'r') as f:
+            split_image_ids = json.load(f)[split_name]
     print('split image number: %d for split name: %s' % (len(split_image_ids), split_name))
 
     print('start loading json files...')
@@ -213,13 +213,10 @@ def process_vg():
         with open(vocab_path, 'r') as f:
             vocab = [line.strip() for line in f]
 
-    # TODO: delete testing option
-    # datasets = ['train', 'val', 'test']
-    datasets = ['pre']
+    datasets = ['train', 'val', 'test']
     for split_name in datasets:
         vocab = process_dataset(split_name, vocab=vocab)
 
 
 if __name__ == "__main__":
-
     process_vg()
