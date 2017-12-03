@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+set -e
+set -x
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]; do
@@ -37,7 +39,7 @@ done
 if [ -d "/valohai/inputs" ]; then
     # apt-get -y update
     # apt-get -y install python-pip
-    pip install tqdm
+    pip install -r requirements.txt
     cd /valohai/inputs
     mkdir ${VERSION}
     unzip image_meta/image_data.json.zip -d ./${VERSION}
@@ -48,7 +50,7 @@ if [ -d "/valohai/inputs" ]; then
         --output_dir ${OUTPUT_DIR} \
         --max_words ${MAX_WORDS}
 
-    tar -czvf /valohai/outputs/visual_genome.tar.gz /valohai/inputs/${OUTPUT_DIR}
+    tar -czvf /valohai/outputs/visual_genome.tar.gz ${OUTPUT_DIR}
     # comment it if one already have data stored in S3
     mv regions/region_descriptions.json.zip /valohai/outputs
 fi
