@@ -8,6 +8,7 @@ export PYTHONUNBUFFERED='True'
 DATASET='visual_genome_1.2'
 NET='res50'
 ckpt_path='/home/joe/git/slim_models'
+data_dir='/home/joe/git/visual_genome'
 
 case $DATASET in
    visual_genome)
@@ -47,6 +48,7 @@ if [ -d '/valohai/outputs' ]; then
     unzip -xvzf images.zip -d ./images
     unzip -xvzf images2.zip -d ./images
     ckpt_path='/valohai/inputs/resnet'
+    data_dir='/valohai/inputs/visual_genome'
     cd /valohai/repository
 else
     LOG="tests/logs/${NET}_${TRAIN_IMDB}_test.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
@@ -61,6 +63,7 @@ time python ./tools/train_net.py \
     --imdbval ${TEST_IMDB} \
     --iters ${ITERS} \
     --cfg scripts/dense_cap_config.yml \
+    --data_dir ${data_dir} \
     --net ${NET}
 
 if [ -d '/valohai/outputs']; then
