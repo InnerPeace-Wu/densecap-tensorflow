@@ -47,6 +47,9 @@ class Network(object):
 
         self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
         self._im_info = tf.placeholder(tf.float32, shape=[3])
+        # add global roi
+        if cfg.CONTEXT_FUSION:
+            self._global_roi = tf.placeholder(tf.float32, shape=[1, 5])
         self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
         # add 2 for: <SOS> and <EOS>
         self._gt_phrases = tf.placeholder(tf.int32, shape=[None, cfg.MAX_WORDS])
@@ -327,11 +330,18 @@ class Network(object):
         comput image context feature and embed input sentence,
         do 'concat' or 'repeat' image feature
         """
-        # Node in graph:  resnet_v1_50_4/fc8_im_context/BiasAdd
-        fc8_im_context = slim.fully_connected(fc7, cfg.EMBED_DIM,
+        region_features = slim.fully_connected(fc7, cfg.EMBED_DIM,
                                               weights_initializer=initializer,
                                               trainable=is_training,
-                                              activation_fn=None, scope='fc8_im_context')
+                                              activation_fn=None, scope='region_features')
+        if cfg.CONTEXT_FUSION:
+            # global_feature [1, cfg.EMBED_DIM(512)]
+            global_feature, region_features = tf.split(region_features, [1, -1], axis=0)
+            batch_size = tf.cast(region_features.shape[0], tf.int32)
+            # global_feature_rep [batch_size(256), cfg.EMBED_DIM(512)]
+            global_feature_rep = tf.tile(global_feature, [batch_size, 1])
+            gfeat_lstm_cell = rnn.BasicLSTMCell(cfg.EMBED_DIM, forget_bias=1.0,
+                state_is_tuple=True)
         with tf.variable_scope('seq_embedding'), tf.device("/cpu:0"):
             self._embedding = tf.get_variable("embedding",
                                               # 0,1,2 for pad sos eof respectively.
@@ -339,6 +349,7 @@ class Network(object):
                                               initializer=initializer,
                                               trainable=is_training
                                               )
+            # independent decoder and encoder for word representation.
             # self._inverse_embed = tf.get_variable('inverse_embed',
                                                   # [cfg.EMBED_DIM, cfg.VOCAB_SIZE + 3],
                                                   # initializer=initializer)
@@ -356,25 +367,39 @@ class Network(object):
         with tf.variable_scope("lstm") as lstm_scope:
             # Feed the image embeddings to set the intial LSTM state
             cap_zero_state = caption_lstm_cell.zero_state(
-                batch_size=tf.shape(fc8_im_context)[0], dtype=tf.float32)
+                batch_size=batch_size, dtype=tf.float32)
             loc_zero_state = location_lstm_cell.zero_state(
-                batch_size=tf.shape(fc8_im_context)[0], dtype=tf.float32)
+                batch_size=batch_size, dtype=tf.float32)
             with tf.variable_scope('cap_lstm'):
-                _, cap_init_state = caption_lstm_cell(fc8_im_context, cap_zero_state)
+                _, cap_init_state = caption_lstm_cell(region_features, cap_zero_state)
             with tf.variable_scope('loc_lstm'):
-                _, loc_init_state = location_lstm_cell(fc8_im_context, loc_zero_state)
+                _, loc_init_state = location_lstm_cell(region_features, loc_zero_state)
+
+            if cfg.CONTEXT_FUSION:
+                gfeat_zero_state = gfeat_lstm_cell.zero_state(
+                    batch_size=batch_size, dtype=tf.float32)
+                with tf.variable_scope('gfeat_lstm'):
+                    # NOTE: gfeat_init_state [batch_size(256), cfg.EMBED_DIM(512)]
+                    _, gfeat_init_state = gfeat_lstm_cell(global_feature,
+                        gfeat_zero_state)
 
             # Allow the LSTM variable to be reused
             lstm_scope.reuse_variables()
 
             if self._mode == 'TRAIN':
                 if cfg.CONTEXT_MODE == 'concat':
-                    im_context = tf.expand_dims(fc8_im_context, axis=1)
-                    im_concat_words = tf.concat([im_context, embed_input_sentence], axis=1)
+                    im_context = tf.expand_dims(region_features, axis=1)
+                    im_concat_words = tf.concat([im_context, embed_input_sentence],
+                        axis=1)
+                    if cfg.CONTEXT_FUSION:
+                        global_feature_rep = tf.expand_dims(global_feature_rep, axis=1)
+                        global_concat_words = tf.concat([global_feature_rep,
+                            embed_input_sentence], axis=1)
                 else:
                     raise NotImplementedError
 
-                sequence_length = self._sequence_length(input_sentence)
+                # TODO(wu) need to check again about the sequence length
+                sequence_length = self._sequence_length(input_sentence) + 1
                 cap_outputs, cap_states = tf.nn.dynamic_rnn(caption_lstm_cell, im_concat_words,
                                                             sequence_length=sequence_length,
                                                             dtype=tf.float32,
@@ -384,6 +409,18 @@ class Network(object):
                                                             sequence_length=sequence_length,
                                                             dtype=tf.float32,
                                                             scope='location_lstm')
+                if cfg.CONTEXT_FUSION:
+                    gfeat_outputs, gfeat_states = tf.nn.dynamic_rnn(gfeat_lstm_cell,
+                        global_concat_words,
+                        sequence_length=sequence_length,
+                        dtype=tf.float32,
+                        scope='gfeat_lstm')
+                    # for now, it only support mode "sum"
+                    if cfg.CONTEXT_FUSION_MODE == "sum":
+                        cap_outputs = gfeat_outputs + cap_outputs
+                    else:
+                        raise NotImplementedError
+
                 # OUT OF MEMORY ON GPU
                 # inv_embedding = tf.tile(tf.expand_dims(tf.transpose(self._embedding),
                 #                                        [0]),
@@ -398,6 +435,7 @@ class Network(object):
                 # problematic to always slice output of the last slice
                 # loc_out_slice = tf.slice(loc_outputs, [0, cfg.TIME_STEPS - 1, 0], [-1, 1, -1])
                 # loc_out_slice = tf.squeeze(loc_out_slice, [1])
+                # BETTER SOLUTION
                 cont_bbox = tf.expand_dims(self._sentence_data['cont_bbox'], axis=2)
                 loc_out_slice = tf.reduce_sum(loc_outputs * cont_bbox, axis=1)
 
@@ -430,7 +468,21 @@ class Network(object):
                 # Concatenate the resulting state
                 tf.concat(values=cap_state_tuple, axis=1, name='cap_state')
                 tf.concat(values=loc_state_tuple, axis=1, name='loc_state')
-                loc_out_slice = cap_outputs
+                loc_out_slice = loc_outputs
+                # NOTE CONTEXT FUSION
+                if cfg.CONTEXT_FUSION:
+                    tf.concat(values=gfeat_init_state, axis=1, name='gfeat_init_state')
+                    gfeat_state_feed = tf.placeholder(dtype=tf.float32,
+                        shape=[None, sum(gfeat_lstm_cell.state_size)],
+                        name='gfeat_state_feed')
+                    gfeat_state_tuple = tf.split(value=gfeat_state_feed, num_or_size_splits=2,
+                        axis=1)
+                    gfeat_outputs, gfeat_state_tuple = gfeat_lstm_cell(
+                        inputs=seq_embedding,
+                        state=gfeat_state_tuple)
+                    tf.concat(values=cap_state_tuple, axis=1, name='gfeat_state')
+                    if cfg.CONTEXT_FUSION_MODE == "sum":
+                        cap_outputs += gfeat_outputs
 
             else:
                 raise NotImplementedError
@@ -454,8 +506,7 @@ class Network(object):
         if cfg.DEBUG_ALL:
             self._for_debug['embedding'] = self._embedding
             self._for_debug['embed_input_sentence'] = embed_input_sentence
-            self._for_debug['fc8'] = fc8_im_context
-            # self._for_debug['im_context'] = im_context
+            self._for_debug['fc8'] = region_features
             # self._for_debug['im_concat_words'] = im_concat_words
             self._for_debug['captoin_outputs'] = cap_outputs
             self._for_debug['loc_outputs'] = loc_outputs
@@ -520,8 +571,12 @@ class Network(object):
 
         fc7 = self._head_to_tail(pool5, is_training)
         with tf.variable_scope(self._scope + '/Prediction'):
+            # add context fusion
+            if cfg.CONTEXT_FUSION:
+                # global feature after "head_to_tail" is dumped
+                _, fc7_1 = tf.split(fc7, [1, -1], axis=0)
             # region classification
-            cls_prob = self._region_classification(fc7, is_training,
+            cls_prob = self._region_classification(fc7_1, is_training,
                                                    initializer)
             self._embed_caption_layer(fc7, input_sentence, initializer, is_training)
 
@@ -639,6 +694,10 @@ class Network(object):
             with tf.control_dependencies([rpn_labels]):
                 # rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
                 rois, labels, phrases = self._proposal_target_single_class_layer(rois, roi_scores, "rpn_rois")
+                # NOTE: add context feature
+                if cfg.CONTEXT_FUSION:
+                    rois = tf.concat((self._global_roi, rois), axis=0)
+                    print("Using context fusion, with shape of rois: {}".format(rois.shape))
                 self._roi_labels = labels
                 self._roi_phrases = phrases
         else:
@@ -783,42 +842,48 @@ class Network(object):
     def feed_image(self, sess, image, im_info):
         feed_dict = {self._image: image,
                      self._im_info: im_info}
-
-        cap_init_state, loc_init_state, cls_prob, rois = sess.run([
+        fetch_list = [
             '%s/Prediction/lstm/cap_init_state:0' % self._scope,
             '%s/Prediction/lstm/loc_init_state:0' % self._scope,
             self._predictions['cls_prob'],
-            self._predictions['rois']],
-            feed_dict=feed_dict)
+            self._predictions['rois']]
+        if cfg.CONTEXT_FUSION:
+            feed_dict.update({self._global_roi: np.array([[0., 0., 0., im_info[1] - 1,
+                        im_info[0] - 1]], dtype=np.float32)})
+            fetch_list.append('%s/Prediction/lstm/gfeat_init_state:0' % self._scope)
 
-        return cap_init_state, loc_init_state, cls_prob, rois
+        fetch = sess.run(fetch_list, feed_dict=feed_dict)
 
-    def inference_step(self, sess, input_feed, cap_state_feed, loc_state_feed):
+        return fetch
+
+    def inference_step(self, sess, input_feed, cap_state_feed, loc_state_feed,
+                        gfeat_state_feed=None):
         feed_dict = {'%s/Extraction/input_feed:0' % self._scope: input_feed,
                      '%s/Prediction/lstm/cap_state_feed:0' % self._scope: cap_state_feed,
                      '%s/Prediction/lstm/loc_state_feed:0' % self._scope: loc_state_feed}
-        fetches = ['%s/Prediction/lstm/cap_probs:0' % self._scope,
+        fetch_list = ['%s/Prediction/lstm/cap_probs:0' % self._scope,
                    self._predictions['bbox_pred'],
                    '%s/Prediction/lstm/cap_state:0' % self._scope,
                    '%s/Prediction/lstm/loc_state:0' % self._scope]
-        cap_probs, bbox_pred, cap_state, loc_state = sess.run(fetches=fetches,
-                                                              feed_dict=feed_dict)
+        if cfg.CONTEXT_FUSION:
+            feed_dict.update({'%s/Prediction/lstm/gfeat_state_feed:0' % self._scope:
+                              gfeat_state_feed})
+            fetch_list.append('%s/Prediction/lstm/gfeat_state:0' % self._scope)
+        fetch = sess.run(fetches=fetches, feed_dict=feed_dict)
 
-        return cap_probs, bbox_pred, cap_state, loc_state
+        return fetch
+
+    def inference_step_with_context(self, sess, )
 
     def get_summary(self, sess, blobs):
-        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes'],
-                     self._gt_phrases: blobs['gt_phrases']}
+        feed_dict = self._feed_dict(blobs)
 
         summary = sess.run(self._summary_op_val, feed_dict=feed_dict)
 
         return summary
 
     def train_step(self, sess, blobs, train_op):
-        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes'],
-                     self._gt_phrases: blobs['gt_phrases']}
+        feed_dict = self._feed_dict(blobs)
 
         rpn_loss_cls, rpn_loss_box, loss_cls, \
             loss_box, caption_loss, loss, \
@@ -834,10 +899,7 @@ class Network(object):
             loss_box, caption_loss, loss
 
     def train_step_with_summary(self, sess, blobs, train_op):
-        feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                     self._gt_boxes: blobs['gt_boxes'],
-                     self._gt_phrases: blobs['gt_phrases']}
-
+        feed_dict = self._feed_dict(blobs)
         rpn_loss_cls, rpn_loss_box, loss_cls, \
             loss_box, caption_loss, loss, \
             summary, _ = sess.run([self._losses["rpn_cross_entropy"],
@@ -854,8 +916,17 @@ class Network(object):
             loss_box, caption_loss, loss, summary
 
     def train_step_no_return(self, sess, blobs, train_op):
+        feed_dict = self._feed_dict(blobs)
+
+        sess.run([train_op], feed_dict=feed_dict)
+
+    def _feed_dict(self, blobs):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                      self._gt_boxes: blobs['gt_boxes'],
                      self._gt_phrases: blobs['gt_phrases']}
+        if cfg.CONTEXT_FUSION:
+            feed_dict.update({self._global_roi:
+                np.array([[0., 0., 0., blobs['im_info'][1] - 1,
+                          blobs['im_info'][0] - 1]], dtype=np.float32)})
 
-        sess.run([train_op], feed_dict=feed_dict)
+        return feed_dict

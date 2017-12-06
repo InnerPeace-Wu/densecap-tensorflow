@@ -7,15 +7,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# import sys
-# sys.path.append("..")
-
 import os
 import numpy as np
 import scipy.sparse
 import uuid
 import json
-# import logging
 import six
 from tqdm import tqdm
 from six.moves import xrange, cPickle
@@ -26,11 +22,6 @@ from lib.config import cfg
 from lib.limit_ram.utils import pre_roidb, flip_image
 from lib.limit_ram.utils import is_valid_limitRam
 
-# import xml.etree.ElementTree as ET
-# import datasets.ds_utils as ds_utils
-# import scipy.io as sio
-# import utils.cython_bbox
-# import subprocess
 
 DEBUG = False
 USE_CACHE = True
@@ -63,11 +54,7 @@ class visual_genome(imdb):
 
         self._classes = ('__background__', '__foreground__')
 
-        # TODO: delete testing option
-        if image_set == 'pre':
-            self._image_index = [1, 2]
-        else:
-            self._image_index = self._load_image_set_index()
+        self._image_index = self._load_image_set_index()
         # test for overfitting a minibatch
         if cfg.ALL_TEST:
             if image_set == 'train':
@@ -171,18 +158,11 @@ class visual_genome(imdb):
             return roidb
 
         gt_roidb = [self._load_vg_annotation(index) for index in self._image_index]
-        # TODO: clear test codes
         gt_phrases = {}
         for k, v in six.iteritems(self._gt_regions):
             for reg in v['regions']:
                 gt_phrases[reg['region_id']] = self._line_to_stream(reg['phrase_tokens'])
-        #
-        #         if DEBUG:
-        #             # CHECK consistency
-        #             for wi, w in zip(gt_phrases[reg['region_id']], reg['phrase_tokens']):
-        #                 vocab_w = self._vocabulary_inverted[wi - 1]
-        #                 print(vocab_w, w)
-        #                 assert (vocab_w == UNK_IDENTIFIER or vocab_w == w)
+
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
         with open(cache_file_phrases, 'wb') as fid:
@@ -339,11 +319,6 @@ class visual_genome(imdb):
 
 
 if __name__ == '__main__':
-    # TODO: delete testing option
-    cfg.LIMIT_RAM = False
-    d = visual_genome('pre', '1.2')
-    # d = visual_genome('train', '1.2')
-    res = d.roidb
-    # from IPython import embed;
 
-    # embed()
+    from IPython import embed
+    embed()

@@ -223,8 +223,14 @@ def im_detect(sess, net, im, boxes=None, use_box_at=-1):
     # (TODO wu) for now it only works with "concat" mode
 
     # get initial states and rois
-    cap_state, loc_state, scores, rois = net.feed_image(sess, blobs['data'],
-                                                        blobs['im_info'][0])
+    if cfg.CONTEXT_FUSION:
+        cap_state, loc_state, scores, \
+            rois, gfeat_state = net.feed_image(sess,
+                                               blobs['data'],
+                                               blobs['im_info'][0])
+    else:
+        cap_state, loc_state, scores, rois = net.feed_image(sess, blobs['data'],
+                                                            blobs['im_info'][0])
 
     # proposal boxes
     boxes = rois[:, 1:5] / im_scales[0]
@@ -249,9 +255,14 @@ def im_detect(sess, net, im, boxes=None, use_box_at=-1):
         # prepare for seq length in dynamic rnn
         input_feed[end_ids] = 0
         box_offsets[end_ids] = bbox_pred[end_ids]
-
-        cap_probs, bbox_pred, cap_state, loc_state = net.inference_step(sess, input_feed,
-                                                                        cap_state, loc_state)
+        if cfg.CONTEXT_FUSION:
+            cap_probs, bbox_pred, cap_state, loc_state, \
+                gfeat_state = net.inference_step(sess, input_feed,
+                                                 cap_state, loc_state, gfeat_state)
+        else:
+            cap_probs, bbox_pred, cap_state, \
+                loc_state = net.inference_step(sess, input_feed,
+                                               cap_state, loc_state)
         bbox_offsets_list.append(bbox_pred)
 
     # bbox target unnormalization
