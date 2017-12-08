@@ -77,6 +77,8 @@ def parse_args():
                         default=None, type=str)
     parser.add_argument('--data_dir', dest='data_dir', type=str,
                         default='/home/joe/git/visual_genome', help='dataset directory')
+    parser.add_argument('--embed_dim', dest='embed_dim', type=int,
+                        default=512, help='embed dimension of words')
     parser.add_argument('--context_fusion', dest='context_fusion', action='store_true', help='train with context fusion.')
     parser.add_argument('--set', dest='set_cfgs',
                         help='set config keys', default=None,
@@ -129,7 +131,8 @@ def get_roidb_limit_ram(imdb_name):
 def main():
     args = parse_args()
     cfg.DATA_DIR = args.data_dir
-    cfg.CONTEXT_FUSION = cfg.context_fusion
+    cfg.CONTEXT_FUSION = args.context_fusion
+    cfg.EMBED_DIM = args.embed_dim
     # c_time = time.strftime('%m%d_%H%M', time.localtime())
     # if not os.path.exists(cfg.LOG_DIR):
     #     os.makedirs(cfg.LOG_DIR)

@@ -196,11 +196,7 @@ __C.TRAIN.BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
 # be used as a bounding-box regression training example
 __C.TRAIN.BBOX_THRESH = 0.5
 
-# train with context fusion
-__C.CONTEXT_FUSION = False
 
-# mode of context fusion e.g. "sum" "concat"
-__C.CONTEXT_FUSION_MODE = "sum"
 
 #
 # ResNet options
@@ -389,6 +385,12 @@ __C.LOSS.RPN_BBOX_W = 0.05
 
 # weight of rpn class loss
 __C.LOSS.RPN_CLS_W = 0.1
+
+# train with context fusion
+__C.CONTEXT_FUSION = False
+
+# mode of context fusion e.g. "sum" "concat"
+__C.CONTEXT_FUSION_MODE = "sum"
 
 #
 # Functions

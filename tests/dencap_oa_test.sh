@@ -55,4 +55,4 @@ time python ./tools/train_net.py \
     --iters ${ITERS} \
     --cfg scripts/dense_cap_config.yml \
     --data_dir ${data_dir} \
-    --net ${NET}
+    --net ${NET} \

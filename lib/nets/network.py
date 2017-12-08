@@ -18,6 +18,7 @@ from tensorflow.contrib.slim import arg_scope
 import tensorflow.contrib.rnn as rnn
 
 import numpy as np
+import pdb
 
 from lib.layers.snippets import generate_anchors_pre
 from lib.layers.proposal_layer import proposal_layer
@@ -337,7 +338,7 @@ class Network(object):
         if cfg.CONTEXT_FUSION:
             # global_feature [1, cfg.EMBED_DIM(512)]
             global_feature, region_features = tf.split(region_features, [1, -1], axis=0)
-            batch_size = tf.cast(region_features.shape[0], tf.int32)
+            batch_size = tf.shape(region_features)[0]
             # global_feature_rep [batch_size(256), cfg.EMBED_DIM(512)]
             global_feature_rep = tf.tile(global_feature, [batch_size, 1])
             gfeat_lstm_cell = rnn.BasicLSTMCell(cfg.EMBED_DIM, forget_bias=1.0,
@@ -380,7 +381,7 @@ class Network(object):
                     batch_size=batch_size, dtype=tf.float32)
                 with tf.variable_scope('gfeat_lstm'):
                     # NOTE: gfeat_init_state [batch_size(256), cfg.EMBED_DIM(512)]
-                    _, gfeat_init_state = gfeat_lstm_cell(global_feature,
+                    _, gfeat_init_state = gfeat_lstm_cell(global_feature_rep,
                         gfeat_zero_state)
 
             # Allow the LSTM variable to be reused
@@ -694,10 +695,7 @@ class Network(object):
             with tf.control_dependencies([rpn_labels]):
                 # rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
                 rois, labels, phrases = self._proposal_target_single_class_layer(rois, roi_scores, "rpn_rois")
-                # NOTE: add context feature
-                if cfg.CONTEXT_FUSION:
-                    rois = tf.concat((self._global_roi, rois), axis=0)
-                    print("Using context fusion, with shape of rois: {}".format(rois.shape))
+
                 self._roi_labels = labels
                 self._roi_phrases = phrases
         else:
@@ -708,6 +706,10 @@ class Network(object):
             else:
                 raise NotImplementedError
 
+        # NOTE: add context feature
+        if cfg.CONTEXT_FUSION:
+            rois_g = tf.concat((self._global_roi, rois), axis=0)
+            print("Using context fusion, with shape of rois: {}".format(rois.shape))
         self._predictions["rpn_cls_score"] = rpn_cls_score
         self._predictions["rpn_cls_score_reshape"] = rpn_cls_score_reshape
         self._predictions["rpn_cls_prob"] = rpn_cls_prob
@@ -722,7 +724,7 @@ class Network(object):
             self._for_debug['rpn_cls_prob_reshape'] = rpn_cls_prob_reshape
             self._for_debug['rpn_cls_score_reshape'] = rpn_cls_score_reshape
             self._for_debug['rpn_bbox_pred'] = rpn_bbox_pred
-        return rois
+        return rois_g
 
     # TODO: clear stuff
     def _region_classification(self, fc7, is_training, initializer):
@@ -869,11 +871,9 @@ class Network(object):
             feed_dict.update({'%s/Prediction/lstm/gfeat_state_feed:0' % self._scope:
                               gfeat_state_feed})
             fetch_list.append('%s/Prediction/lstm/gfeat_state:0' % self._scope)
-        fetch = sess.run(fetches=fetches, feed_dict=feed_dict)
+        fetch = sess.run(fetches=fetch_list, feed_dict=feed_dict)
 
         return fetch
-
-    def inference_step_with_context(self, sess, )
 
     def get_summary(self, sess, blobs):
         feed_dict = self._feed_dict(blobs)
