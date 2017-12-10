@@ -54,4 +54,4 @@
       - name: iters
         type: integer
         pass-as: -iters {v}
-        default: 20000
+        default: 80000
