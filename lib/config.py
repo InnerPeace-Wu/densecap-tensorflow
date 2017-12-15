@@ -197,7 +197,6 @@ __C.TRAIN.BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
 __C.TRAIN.BBOX_THRESH = 0.5
 
 
-
 #
 # ResNet options
 #
@@ -391,6 +390,18 @@ __C.CONTEXT_FUSION = False
 
 # mode of context fusion e.g. "sum" "concat"
 __C.CONTEXT_FUSION_MODE = "sum"
+
+# Dimension of glove word vectors
+__C.GLOVE_DIM = 300
+
+# Initialize word vectors and classifier with glove
+__C.INIT_BY_GLOVE = False
+
+# Train the glove word vectors
+__C.TRAIN_GLOVE = False
+
+# Keep Glove word vectors dimension
+__C.KEEP_AS_GLOVE_DIM = True
 
 #
 # Functions

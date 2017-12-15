@@ -151,6 +151,7 @@ class SolverWrapper(object):
             loss = layers['total_loss']
             # Set learning rate and momentum
             lr = tf.Variable(cfg.TRAIN.LEARNING_RATE, trainable=False)
+            print("learning rate {}".format(cfg.TRAIN.LEARNING_RATE))
             self.global_step = tf.Variable(0, trainable=False)
             if cfg.TRAIN.LR_DIY_DECAY:
                 learning_rate = lr

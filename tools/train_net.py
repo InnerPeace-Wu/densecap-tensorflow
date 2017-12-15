@@ -56,7 +56,7 @@ def parse_args():
     parser.add_argument('--iters', dest='max_iters',
                         help='number of iterations to train',
                         default=40000, type=int)
-    parser.add_argument('--weights', dest='pretrained_model',
+    parser.add_argument('--weights', dest='weights',
                         help='initialize with pretrained model weights',
                         default=None, type=str)
     parser.add_argument('--cfg', dest='cfg_file',
@@ -132,7 +132,6 @@ def main():
     args = parse_args()
     cfg.DATA_DIR = args.data_dir
     cfg.CONTEXT_FUSION = args.context_fusion
-    cfg.EMBED_DIM = args.embed_dim
     # c_time = time.strftime('%m%d_%H%M', time.localtime())
     # if not os.path.exists(cfg.LOG_DIR):
     #     os.makedirs(cfg.LOG_DIR)
@@ -147,6 +146,11 @@ def main():
         cfg_from_file(args.cfg_file)
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
+
+    if cfg.INIT_BY_GLOVE and cfg.KEEP_AS_GLOVE_DIM:
+        cfg.EMBED_DIM = cfg.GLOVE_DIM
+    else:
+        cfg.EMBED_DIM = args.embed_dim
 
     print("runing with LIMIT_RAM: {}".format(cfg.LIMIT_RAM))
 
@@ -191,9 +195,18 @@ def main():
     else:
         raise NotImplementedError
 
+    if args.weights and not args.weights.endswith('.ckpt'):
+        try:
+            ckpt = tf.train.get_checkpoint_state(args.weights)
+            pretrained_model = ckpt.model_checkpoint_path
+        except:
+            raise ValueError("NO checkpoint found in {}".format(args.weights))
+    else:
+        pretrained_model = args.weights
+
     # TODO: "imdb" may not be useful during training
     train_net(net, imdb, roidb, valroidb, output_dir, tb_dir,
-              pretrained_model=args.pretrained_model,
+              pretrained_model=pretrained_model,
               max_iters=args.max_iters)
 
 

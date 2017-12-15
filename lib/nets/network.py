@@ -343,12 +343,34 @@ class Network(object):
             global_feature_rep = tf.tile(global_feature, [batch_size, 1])
             gfeat_lstm_cell = rnn.BasicLSTMCell(cfg.EMBED_DIM, forget_bias=1.0,
                 state_is_tuple=True)
+        else:
+            batch_size = tf.shape(region_features)[0]
+
         with tf.variable_scope('seq_embedding'), tf.device("/cpu:0"):
+            if cfg.INIT_BY_GLOVE and is_training:
+                glove_path = cfg.DATA_DIR + "/glove.trimmed.{}.npz".format(cfg.GLOVE_DIM)
+                glove = np.load(glove_path)['glove'].astype(np.float32)
+                print("load pre-trained glove from {}, with shape: {}".format(glove_path,
+                    glove.shape))
+                if not cfg.KEEP_AS_GLOVE_DIM:
+                    g_mean = np.mean(glove, axis=1)
+                    g_std = np.std(glove, axis=1)
+                    expand_glove = np.random.normal(g_mean, g_std,
+                         (cfg.EMBED_DIM, cfg.VOCAB_SIZE + 3))
+                    expand_glove[:glove.shape[1], :] = glove.T
+                    embed_initializer = tf.constant_initializer(expand_glove.T)
+                else:
+                    embed_initializer = tf.constant_initializer(glove)
+                    assert cfg.EMBED_DIM == cfg.GLOVE_DIM
+            else:
+                embed_initializer = initializer
+
             self._embedding = tf.get_variable("embedding",
                                               # 0,1,2 for pad sos eof respectively.
                                               [cfg.VOCAB_SIZE + 3, cfg.EMBED_DIM],
-                                              initializer=initializer,
-                                              trainable=is_training
+                                              initializer=embed_initializer,
+                                              trainable=is_training,
+                                              dtype=tf.float32
                                               )
             # independent decoder and encoder for word representation.
             # self._inverse_embed = tf.get_variable('inverse_embed',
@@ -576,6 +598,8 @@ class Network(object):
             if cfg.CONTEXT_FUSION:
                 # global feature after "head_to_tail" is dumped
                 _, fc7_1 = tf.split(fc7, [1, -1], axis=0)
+            else:
+                fc7_1 = fc7
             # region classification
             cls_prob = self._region_classification(fc7_1, is_training,
                                                    initializer)
@@ -706,16 +730,17 @@ class Network(object):
             else:
                 raise NotImplementedError
 
-        # NOTE: add context feature
-        if cfg.CONTEXT_FUSION:
-            rois_g = tf.concat((self._global_roi, rois), axis=0)
-            print("Using context fusion, with shape of rois: {}".format(rois.shape))
         self._predictions["rpn_cls_score"] = rpn_cls_score
         self._predictions["rpn_cls_score_reshape"] = rpn_cls_score_reshape
         self._predictions["rpn_cls_prob"] = rpn_cls_prob
         # self._predictions["rpn_cls_pred"] = rpn_cls_pred
         self._predictions["rpn_bbox_pred"] = rpn_bbox_pred
         self._predictions["rois"] = rois
+
+        # NOTE: add context feature
+        if cfg.CONTEXT_FUSION:
+            rois = tf.concat((self._global_roi, rois), axis=0)
+            print("Using context fusion, with shape of rois: {}".format(rois.shape))
 
         if cfg.DEBUG_ALL:
             self._for_debug['rpn'] = rpn
@@ -724,7 +749,7 @@ class Network(object):
             self._for_debug['rpn_cls_prob_reshape'] = rpn_cls_prob_reshape
             self._for_debug['rpn_cls_score_reshape'] = rpn_cls_score_reshape
             self._for_debug['rpn_bbox_pred'] = rpn_bbox_pred
-        return rois_g
+        return rois
 
     # TODO: clear stuff
     def _region_classification(self, fc7, is_training, initializer):
