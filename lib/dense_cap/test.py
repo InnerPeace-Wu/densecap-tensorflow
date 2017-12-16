@@ -26,6 +26,7 @@ import sys
 # sys.path.append('lib/')
 from lib.utils.bbox_utils import region_merge, get_bbox_coord
 from lib.pycocoevalcap.vg_eval import VgEvalCap
+from lib.dense_cap.beam_search import beam_search
 
 COCO_EVAL_PATH = 'coco-caption/'
 sys.path.append(COCO_EVAL_PATH)
@@ -220,6 +221,22 @@ def im_detect(sess, net, im, boxes=None, use_box_at=-1):
         [[im_blob.shape[1], im_blob.shape[2], im_scales[0]]],
         dtype=np.float32)
 
+    if cfg.TEST.USE_BEAM_SEARCH:
+        scores, box_offsets, captions, boxes = beam_search(sess, net, blobs, im_scales)
+    else:
+        scores, box_offsets, captions, boxes = greedy_search(sess, net, blobs, im_scales)
+
+    # bbox target unnormalization
+    box_deltas = box_offsets * bbox_stds + bbox_mean
+
+    # do the transformation
+    pred_boxes = bbox_transform_inv(boxes, box_deltas)
+    pred_boxes = clip_boxes(pred_boxes, im.shape)
+
+    return scores[:, 1], pred_boxes, captions
+
+
+def greedy_search(sess, net, blobs, im_scales):
     # (TODO wu) for now it only works with "concat" mode
 
     # get initial states and rois
@@ -238,7 +255,7 @@ def im_detect(sess, net, im, boxes=None, use_box_at=-1):
 
     cap_probs = np.ones((proposal_n, 1), dtype=np.int32)
     # index of <EOS> in vocab
-    end_idx = 2
+    end_idx = cfg.VOCAB_END_ID
     # captions = np.empty([proposal_n, 1], dtype=np.int32)
     bbox_offsets_list = []
     box_offsets = np.zeros((proposal_n, 4), dtype=np.float32)
@@ -265,14 +282,7 @@ def im_detect(sess, net, im, boxes=None, use_box_at=-1):
                                                cap_state, loc_state)
         bbox_offsets_list.append(bbox_pred)
 
-    # bbox target unnormalization
-    box_deltas = box_offsets * bbox_stds + bbox_mean
-
-    # do the transformation
-    pred_boxes = bbox_transform_inv(boxes, box_deltas)
-    pred_boxes = clip_boxes(pred_boxes, im.shape)
-
-    return scores[:, 1], pred_boxes, captions
+    return scores, box_offsets, captions, boxes
 
 
 def vis_detections(im_path, im, captions, dets, thresh=0.5, save_path='vis'):

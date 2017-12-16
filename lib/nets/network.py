@@ -503,7 +503,7 @@ class Network(object):
                     gfeat_outputs, gfeat_state_tuple = gfeat_lstm_cell(
                         inputs=seq_embedding,
                         state=gfeat_state_tuple)
-                    tf.concat(values=cap_state_tuple, axis=1, name='gfeat_state')
+                    tf.concat(values=gfeat_state_tuple, axis=1, name='gfeat_state')
                     if cfg.CONTEXT_FUSION_MODE == "sum":
                         cap_outputs += gfeat_outputs
 

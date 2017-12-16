@@ -262,6 +262,20 @@ __C.TEST.MODE = 'nms'
 # Only useful when TEST.MODE is 'top', specifies the number of top proposals to select
 __C.TEST.RPN_TOP_N = 5000
 
+# Use beam search to generate captions
+__C.TEST.USE_BEAM_SEARCH = False
+
+# Beam size for beam search
+__C.TEST.BEAM_SIZE = 3
+
+"""
+length_normalization_factor: If != 0, a number x such that captions are
+            scored by logprob/length^x, rather than logprob. This changes the
+            relative scores of captions depending on their lengths. For example, if
+            x > 0 then longer captions will be favored.
+"""
+__C.TEST.LN_FACTOR = 0.
+
 #
 # MISC
 #
@@ -402,6 +416,13 @@ __C.TRAIN_GLOVE = False
 
 # Keep Glove word vectors dimension
 __C.KEEP_AS_GLOVE_DIM = True
+
+# Start id of vocabulary
+__C.VOCAB_START_ID = 1
+
+# End id of vocabulary
+__C.VOCAB_END_ID = 2
+
 
 #
 # Functions

@@ -4,6 +4,58 @@
 		"selected_items":
 		[
 			[
+				"cap",
+				"caps_i\tstatement"
+			],
+			[
+				"par",
+				"par_cap\tstatement"
+			],
+			[
+				"log",
+				"logprob"
+			],
+			[
+				"bbx",
+				"bbox_pred_k\tstatement"
+			],
+			[
+				"new",
+				"new_cap_state\tstatement"
+			],
+			[
+				"input",
+				"input_feed\tstatement"
+			],
+			[
+				"input_",
+				"input_feed_i\tstatement"
+			],
+			[
+				"be",
+				"beam_size\tstatement"
+			],
+			[
+				"loc",
+				"loc_state\tstatement"
+			],
+			[
+				"pro",
+				"proposal_n\tstatement"
+			],
+			[
+				"TO",
+				"TopN\tclass"
+			],
+			[
+				"embed",
+				"embed_initializer\tstatement"
+			],
+			[
+				"V",
+				"VOCAB_SIZE"
+			],
+			[
 				"FI",
 				"FINETUNE_AFTER2"
 			],
@@ -104,14 +156,6 @@
 				"gfeat_states\tstatement"
 			],
 			[
-				"cap",
-				"cap_outputs\tstatement"
-			],
-			[
-				"loc",
-				"loc_outputs\tstatement"
-			],
-			[
 				"gl",
 				"global_concat_words\tstatement"
 			],
@@ -178,10 +222,6 @@
 			[
 				"max",
 				"max_words"
-			],
-			[
-				"par",
-				"parse_args\tfunction"
 			],
 			[
 				"Ar",
@@ -264,11 +304,10 @@
 			}
 		},
 		{
-			"file": "lib/nets/network.py",
+			"file": "lib/pre_glove.py",
 			"settings":
 			{
-				"buffer_size": 47065,
-				"encoding": "UTF-8",
+				"buffer_size": 2741,
 				"line_ending": "Unix"
 			}
 		},
@@ -284,7 +323,7 @@
 			"file": "tests/dencap_oa_test.sh",
 			"settings":
 			{
-				"buffer_size": 3474,
+				"buffer_size": 3497,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -299,10 +338,19 @@
 			}
 		},
 		{
-			"file": "lib/dense_cap/test.py",
+			"file": "lib/dense_cap/beam_search.py",
 			"settings":
 			{
-				"buffer_size": 16404,
+				"buffer_size": 5851,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "lib/dense_cap/caption_generator.py",
+			"settings":
+			{
+				"buffer_size": 8128,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -320,7 +368,16 @@
 			"file": "tools/train_net.py",
 			"settings":
 			{
-				"buffer_size": 7443,
+				"buffer_size": 7469,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "tools/demo.py",
+			"settings":
+			{
+				"buffer_size": 3879,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -329,24 +386,7 @@
 			"file": "scripts/dense_cap_config.yml",
 			"settings":
 			{
-				"buffer_size": 759,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "scripts/dense_cap_train.sh",
-			"settings":
-			{
-				"buffer_size": 3724,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "scripts/dense_cap_demo.sh",
-			"settings":
-			{
-				"buffer_size": 248,
+				"buffer_size": 785,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -355,7 +395,16 @@
 			"file": "scripts/dense_cap_test.sh",
 			"settings":
 			{
-				"buffer_size": 744,
+				"buffer_size": 762,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/dense_cap_demo.sh",
+			"settings":
+			{
+				"buffer_size": 324,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -373,7 +422,7 @@
 			"file": "lib/config.py",
 			"settings":
 			{
-				"buffer_size": 13849,
+				"buffer_size": 14458,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -441,11 +490,16 @@
 	[
 		"/home/joe/git/densecap",
 		"/home/joe/git/densecap/lib",
+		"/home/joe/git/densecap/lib/dense_cap",
+		"/home/joe/git/densecap/scripts",
 		"/home/joe/git/densecap/tests",
 		"/home/joe/git/densecap/tools"
 	],
 	"file_history":
 	[
+		"/home/joe/git/densecap/scripts/dense_cap_train.sh",
+		"/home/joe/git/densecap/scripts/dense_cap_demo.sh",
+		"/home/joe/git/densecap/tests/logs/1_res50_vg_1.2_train_test.txt.2017-12-12_23-28-12",
 		"/home/joe/git/densecap/lib/pre_glove.py",
 		"/home/joe/git/densecap/lib/download_data_vh.sh",
 		"/home/joe/git/densecap/tests/README.md",
@@ -456,7 +510,6 @@
 		"/home/joe/git/densecap/output/dense_cap_all/vg_1.2_train/checkpoint",
 		"/home/joe/git/densecap/tests/dencap_oa_test.sh",
 		"/home/joe/git/densecap/scripts/dense_cap_test.sh",
-		"/home/joe/git/densecap/scripts/dense_cap_demo.sh",
 		"/home/joe/git/densecap/Note.md",
 		"/home/joe/git/densecap/lib/layers/proposal_target_single_class_layer.py",
 		"/home/joe/git/densecap/lib/layers/proposal_layer.py",
@@ -464,7 +517,6 @@
 		"/home/joe/git/densecap/lib/layers/global_roi_layer.py",
 		"/home/joe/.tf_env2/local/lib/python2.7/site-packages/tensorflow/python/ops/array_ops.py",
 		"/home/joe/git/densecap/lib/fast_rcnn/minibatch.py",
-		"/home/joe/git/densecap/scripts/dense_cap_train.sh",
 		"/home/joe/git/densecap/lib/dense_cap/test.py",
 		"/home/joe/git/densecap/lib/utils/visualization.py",
 		"/home/joe/git/densecap/tests/roidata_test.py",
@@ -512,6 +564,8 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"state",
+			"\n                            ",
 			"construct_graph",
 			"initialize",
 			"_embed_caption_layer",
@@ -641,7 +695,7 @@
 	"groups":
 	[
 		{
-			"selected": 4,
+			"selected": 2,
 			"sheets":
 			[
 				{
@@ -657,8 +711,8 @@
 						"selection":
 						[
 							[
-								88,
-								88
+								87,
+								87
 							]
 						],
 						"settings":
@@ -675,57 +729,29 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 8,
+					"stack_index": 12,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "lib/nets/network.py",
+					"file": "lib/pre_glove.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 47065,
+						"buffer_size": 2741,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								30074,
-								30074
+								1349,
+								1354
 							]
 						],
 						"settings":
 						{
-							"auto_complete_triggers":
-							[
-								{
-									"characters": ".",
-									"selector": "source.python"
-								},
-								{
-									"characters": ".",
-									"selector": "source.python - string - constant.numeric"
-								},
-								{
-									"characters": ".",
-									"selector": "source.python - string - constant.numeric"
-								},
-								{
-									"characters": ".",
-									"selector": "source.python - string - constant.numeric"
-								},
-								{
-									"characters": ".",
-									"selector": "source.python - string - constant.numeric"
-								},
-								{
-									"characters": ".",
-									"selector": "source.python - string - constant.numeric"
-								}
-							],
 							"git_gutter_is_enabled": true,
-							"history_list_is_closing": true,
 							"is_init_dirty_state": false,
 							"origin_encoding": "ASCII",
 							"syntax": "Packages/Python/Python.sublime-syntax",
@@ -733,10 +759,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 603.0,
+						"translation.y": 756.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 7,
+					"stack_index": 14,
 					"type": "text"
 				},
 				{
@@ -752,8 +778,8 @@
 						"selection":
 						[
 							[
-								8404,
-								8421
+								6770,
+								6770
 							]
 						],
 						"settings":
@@ -766,10 +792,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 3384.0,
+						"translation.y": 197.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 0,
 					"type": "text"
 				},
 				{
@@ -778,15 +804,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3474,
+						"buffer_size": 3497,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1062,
-								1062
+								2223,
+								2223
 							]
 						],
 						"settings":
@@ -799,7 +825,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 2205.0,
+						"translation.y": 1260.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
@@ -818,8 +844,8 @@
 						"selection":
 						[
 							[
-								784,
-								784
+								29,
+								29
 							]
 						],
 						"settings":
@@ -833,30 +859,77 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 2,
 					"type": "text"
-				}
-			]
-		},
-		{
-			"selected": 7,
-			"sheets":
-			[
+				},
 				{
 					"buffer": 5,
-					"file": "lib/dense_cap/test.py",
+					"file": "lib/dense_cap/beam_search.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 16404,
+						"buffer_size": 5851,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								12271,
-								12274
+								968,
+								968
+							]
+						],
+						"settings":
+						{
+							"auto_complete_triggers":
+							[
+								{
+									"characters": ".",
+									"selector": "source.python"
+								},
+								{
+									"characters": ".",
+									"selector": "source.python - string - constant.numeric"
+								},
+								{
+									"characters": ".",
+									"selector": "source.python - string - constant.numeric"
+								}
+							],
+							"git_gutter_is_enabled": true,
+							"is_init_dirty_state": false,
+							"open_with_edit": true,
+							"origin_encoding": "UTF-8",
+							"syntax": "Packages/Python/Python.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				}
+			]
+		},
+		{
+			"selected": 8,
+			"sheets":
+			[
+				{
+					"buffer": 6,
+					"file": "lib/dense_cap/caption_generator.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8128,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1038,
+								1038
 							]
 						],
 						"settings":
@@ -880,14 +953,14 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 6856.0,
+						"translation.y": 546.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 13,
+					"stack_index": 5,
 					"type": "text"
 				},
 				{
-					"buffer": 6,
+					"buffer": 7,
 					"file": "tools/test_net.py",
 					"semi_transient": false,
 					"settings":
@@ -899,8 +972,8 @@
 						"selection":
 						[
 							[
-								4556,
-								4561
+								635,
+								635
 							]
 						],
 						"settings":
@@ -913,27 +986,27 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 262.0,
+						"translation.y": 693.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 6,
+					"stack_index": 11,
 					"type": "text"
 				},
 				{
-					"buffer": 7,
+					"buffer": 8,
 					"file": "tools/train_net.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 7443,
+						"buffer_size": 7469,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								7052,
-								7052
+								3374,
+								3531
 							]
 						],
 						"settings":
@@ -943,6 +1016,10 @@
 								{
 									"characters": ".",
 									"selector": "source.python"
+								},
+								{
+									"characters": ".",
+									"selector": "source.python - string - constant.numeric"
 								},
 								{
 									"characters": ".",
@@ -981,27 +1058,59 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 3732.0,
+						"translation.y": 1128.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
+					"stack_index": 9,
 					"type": "text"
 				},
 				{
-					"buffer": 8,
-					"file": "scripts/dense_cap_config.yml",
+					"buffer": 9,
+					"file": "tools/demo.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 759,
+						"buffer_size": 3879,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								758,
-								758
+								2041,
+								2041
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"origin_encoding": "ASCII",
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 819.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "scripts/dense_cap_config.yml",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 785,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								73,
+								73
 							]
 						],
 						"settings":
@@ -1017,70 +1126,6 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 9,
-					"type": "text"
-				},
-				{
-					"buffer": 9,
-					"file": "scripts/dense_cap_train.sh",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 3724,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								2403,
-								2403
-							]
-						],
-						"settings":
-						{
-							"git_gutter_is_enabled": true,
-							"is_init_dirty_state": false,
-							"origin_encoding": "ASCII",
-							"syntax": "Packages/ShellScript/Shell-Unix-Generic.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 819.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 11,
-					"type": "text"
-				},
-				{
-					"buffer": 10,
-					"file": "scripts/dense_cap_demo.sh",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 248,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								248,
-								248
-							]
-						],
-						"settings":
-						{
-							"git_gutter_is_enabled": true,
-							"is_init_dirty_state": false,
-							"origin_encoding": "ASCII",
-							"syntax": "Packages/ShellScript/Shell-Unix-Generic.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
 					"stack_index": 10,
 					"type": "text"
 				},
@@ -1090,15 +1135,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 744,
+						"buffer_size": 762,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								339,
-								339
+								281,
+								281
 							]
 						],
 						"settings":
@@ -1112,11 +1157,41 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 12,
+					"stack_index": 7,
 					"type": "text"
 				},
 				{
 					"buffer": 12,
+					"file": "scripts/dense_cap_demo.sh",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 324,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								310,
+								310
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"origin_encoding": "ASCII",
+							"syntax": "Packages/ShellScript/Shell-Unix-Generic.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 13,
 					"file": "lib/dense_cap/train.py",
 					"semi_transient": false,
 					"settings":
@@ -1128,8 +1203,8 @@
 						"selection":
 						[
 							[
-								10531,
-								10544
+								17425,
+								17425
 							]
 						],
 						"settings":
@@ -1139,6 +1214,10 @@
 								{
 									"characters": ".",
 									"selector": "source.python"
+								},
+								{
+									"characters": ".",
+									"selector": "source.python - string - constant.numeric"
 								},
 								{
 									"characters": ".",
@@ -1153,27 +1232,27 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 4540.0,
+						"translation.y": 1401.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 13,
 					"type": "text"
 				},
 				{
-					"buffer": 13,
+					"buffer": 14,
 					"file": "lib/config.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 13849,
+						"buffer_size": 14458,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1220,
-								1220
+								776,
+								810
 							]
 						],
 						"settings":
@@ -1183,6 +1262,14 @@
 								{
 									"characters": ".",
 									"selector": "source.python"
+								},
+								{
+									"characters": ".",
+									"selector": "source.python - string - constant.numeric"
+								},
+								{
+									"characters": ".",
+									"selector": "source.python - string - constant.numeric"
 								},
 								{
 									"characters": ".",
@@ -1217,10 +1304,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 666.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 5,
+					"stack_index": 4,
 					"type": "text"
 				}
 			]
@@ -1228,7 +1315,7 @@
 	],
 	"incremental_find":
 	{
-		"height": 29.0
+		"height": 43.0
 	},
 	"input":
 	{
@@ -1318,7 +1405,7 @@
 	"show_open_files": true,
 	"show_tabs": true,
 	"side_bar_visible": false,
-	"side_bar_width": 277.0,
+	"side_bar_width": 362.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{

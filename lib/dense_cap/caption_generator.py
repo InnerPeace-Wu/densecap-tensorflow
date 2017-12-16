@@ -28,7 +28,7 @@ import numpy as np
 class Caption(object):
     """Represents a complete or partial caption."""
 
-    def __init__(self, sentence, state, logprob, score, metadata=None):
+    def __init__(self, sentence, state, box_pred, logprob, score, metadata=None):
         """Initializes the Caption.
 
         Args:
@@ -44,6 +44,7 @@ class Caption(object):
         self.logprob = logprob
         self.score = score
         self.metadata = metadata
+        self.box_pred = box_pred
 
     def __cmp__(self, other):
         """Compares Captions by score."""
@@ -74,7 +75,7 @@ class TopN(object):
         self._data = []
 
     def size(self):
-        assert self._data is not None
+        # assert self._data is not None
         return len(self._data)
 
     def push(self, x):
@@ -102,6 +103,10 @@ class TopN(object):
         if sort:
             data.sort(reverse=True)
         return data
+
+    def get_data(self):
+        assert self._data is not None
+        return self._data
 
     def reset(self):
         """Returns the TopN to an empty state."""
