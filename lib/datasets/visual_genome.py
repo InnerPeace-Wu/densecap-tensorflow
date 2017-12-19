@@ -55,6 +55,16 @@ class visual_genome(imdb):
         self._classes = ('__background__', '__foreground__')
 
         self._image_index = self._load_image_set_index()
+
+        # Default to roidb handler
+        self._roidb_handler = self.gt_roidb
+        self._salt = str(uuid.uuid4())
+        vocab_path = os.path.join(self._data_path, 'vocabulary.txt')
+        with open(vocab_path, 'r') as f:
+            self._vocabulary_inverted = [line.strip() for line in f]
+
+        self._vocabulary = dict([(w, i) for i, w in enumerate(self._vocabulary_inverted)])
+
         # test for overfitting a minibatch
         if cfg.ALL_TEST:
             if image_set == 'train':
@@ -65,15 +75,6 @@ class visual_genome(imdb):
                 self._image_index = self._image_index[:cfg.ALL_TEST_NUM_TEST]
             else:
                 raise ValueError('Please check the name of the image set.')
-
-        # Default to roidb handler
-        self._roidb_handler = self.gt_roidb
-        self._salt = str(uuid.uuid4())
-        vocab_path = os.path.join(self._data_path, 'vocabulary.txt')
-        with open(vocab_path, 'r') as f:
-            self._vocabulary_inverted = [line.strip() for line in f]
-
-        self._vocabulary = dict([(w, i) for i, w in enumerate(self._vocabulary_inverted)])
 
         assert os.path.exists(self._data_path), \
             'Path does not exist: {}'.format(self._data_path)
@@ -118,6 +119,7 @@ class visual_genome(imdb):
         else:
             image_index = [key for key in self._gt_regions]
 
+        print("Number of examples: {}".format(len(image_index)))
         return image_index
 
     def get_gt_regions(self):
@@ -179,7 +181,7 @@ class visual_genome(imdb):
                                                                roidb_cache_path))
             with open(roidb_cache_path + '/image_index.json', 'r') as fi:
                 self._image_index = json.load(fi)
-
+            print("Getting gt roidb and number of examples is:{}".format(len(self._image_index)))
             return roidb_cache_path
 
         elif not os.path.exists(roidb_cache_path):

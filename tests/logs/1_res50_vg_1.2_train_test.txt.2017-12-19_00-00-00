@@ -1,0 +1,145 @@
++ echo Logging output to tests/logs/1_res50_vg_1.2_train_test.txt.2017-12-19_00-00-00
+Logging output to tests/logs/1_res50_vg_1.2_train_test.txt.2017-12-19_00-00-00
++ FIRST_ITERS=80000
++ '[' 1 -lt 2 ']'
++ python ./tools/train_net.py --weights /home/joe/git/slim_models/res50.ckpt --imdb vg_1.2_train --imdbval vg_1.2_val --iters 400000 --cfg scripts/dense_cap_config.yml --data_dir /home/joe/git/visual_genome --net res50 --set EXP_DIR dc_fixed CONTEXT_FUSION False RESNET.FIXED_BLOCKS 3
+------ called with args: -------
+Namespace(cfg_file='scripts/dense_cap_config.yml', context_fusion=False, data_dir='/home/joe/git/visual_genome', device='gpu', device_id=0, embed_dim=512, imdb_name='vg_1.2_train', imdbval_name='vg_1.2_val', max_iters=400000, net='res50', randomize=False, set_cfgs=['EXP_DIR', 'dc_fixed', 'CONTEXT_FUSION', 'False', 'RESNET.FIXED_BLOCKS', '3'], tag=None, weights='/home/joe/git/slim_models/res50.ckpt')
+runing with LIMIT_RAM: True
+Using config:
+{'ALL_TEST': False,
+ 'ALL_TEST_NUM_TEST': 1000,
+ 'ALL_TEST_NUM_TRAIN': 100,
+ 'ALL_TEST_NUM_VAL': 100,
+ 'ANCHOR_RATIOS': [0.5, 1, 2],
+ 'ANCHOR_SCALES': [4, 8, 16, 32],
+ 'CACHE_DIR': '/home/joe/git/visual_genome/1.2',
+ 'CONTEXT_FUSION': False,
+ 'CONTEXT_FUSION_MODE': 'sum',
+ 'CONTEXT_MODE': 'concat',
+ 'DATA_DIR': '/home/joe/git/visual_genome',
+ 'DEBUG_ALL': False,
+ 'EMBED_DIM': 512,
+ 'END_INDEX': 2,
+ 'EXP_DIR': 'dc_fixed',
+ 'FILTER_SMALL_BOX': False,
+ 'GLOVE_DIM': 300,
+ 'GPU_ID': 0,
+ 'INIT_BY_GLOVE': False,
+ 'KEEP_AS_GLOVE_DIM': False,
+ 'LIMIT_RAM': True,
+ 'LOG_DIR': '/home/joe/git/densecap/logs',
+ 'LOSS': {'BBOX_W': 0.01,
+          'CAP_W': 1.0,
+          'CLS_W': 0.1,
+          'RPN_BBOX_W': 0.05,
+          'RPN_CLS_W': 0.1},
+ 'MAX_WORDS': 10,
+ 'PIXEL_MEANS': array([[[ 102.9801,  115.9465,  122.7717]]]),
+ 'POOLING_MODE': 'crop',
+ 'POOLING_SIZE': 7,
+ 'RESNET': {'FIXED_BLOCKS': 3, 'MAX_POOL': False},
+ 'RNG_SEED': 3,
+ 'ROOT_DIR': '/home/joe/git/densecap',
+ 'RPN_CHANNELS': 512,
+ 'SAMPLE_NUM_FIXED_REGIONS': False,
+ 'SPLIT_DIR': '/home/joe/git/densecap/info',
+ 'TEST': {'BBOX_REG': True,
+          'BEAM_SIZE': 3,
+          'HAS_RPN': True,
+          'LN_FACTOR': 0.0,
+          'MAX_SIZE': 720,
+          'MODE': 'nms',
+          'NMS': 0.5,
+          'PROPOSAL_METHOD': 'gt',
+          'RPN_MIN_SIZE': 16,
+          'RPN_NMS_THRESH': 0.6,
+          'RPN_POST_NMS_TOP_N': 300,
+          'RPN_PRE_NMS_TOP_N': 6000,
+          'RPN_TOP_N': 5000,
+          'SCALES': [600],
+          'SVM': False,
+          'USE_BEAM_SEARCH': False},
+ 'TIME_STEPS': 12,
+ 'TRAIN': {'ASPECT_GROUPING': True,
+           'BATCH_SIZE': 256,
+           'BBOX_INSIDE_WEIGHTS': [1.0, 1.0, 1.0, 1.0],
+           'BBOX_NORMALIZE_MEANS': [0.0, 0.0, 0.0, 0.0],
+           'BBOX_NORMALIZE_STDS': [0.1, 0.1, 0.2, 0.2],
+           'BBOX_NORMALIZE_TARGETS': True,
+           'BBOX_NORMALIZE_TARGETS_PRECOMPUTED': True,
+           'BBOX_REG': True,
+           'BBOX_THRESH': 0.5,
+           'BG_THRESH_HI': 0.5,
+           'BG_THRESH_LO': 0.0,
+           'BIAS_DECAY': False,
+           'CLIP_NORM': 40.0,
+           'DISPLAY': 10,
+           'DOUBLE_BIAS': False,
+           'EXP_DECAY_RATE': 0.9,
+           'EXP_DECAY_STEPS': 5000,
+           'FG_FRACTION': 0.5,
+           'FG_THRESH': 0.5,
+           'GAMMA': 0.5,
+           'HAS_RPN': True,
+           'IMS_PER_BATCH': 1,
+           'LEARNING_RATE': 0.001,
+           'LR_DIY_DECAY': True,
+           'MAX_SIZE': 720,
+           'MOMENTUM': 0.98,
+           'OPTIMIZER': 'sgd_m',
+           'PROPOSAL_METHOD': 'gt',
+           'RPN_BATCHSIZE': 256,
+           'RPN_BBOX_INSIDE_WEIGHTS': [1.0, 1.0, 1.0, 1.0],
+           'RPN_CLOBBER_POSITIVES': False,
+           'RPN_FG_FRACTION': 0.5,
+           'RPN_MIN_SIZE': 16,
+           'RPN_NEGATIVE_OVERLAP': 0.3,
+           'RPN_NMS_THRESH': 0.7,
+           'RPN_POSITIVE_OVERLAP': 0.7,
+           'RPN_POSITIVE_WEIGHT': -1.0,
+           'RPN_POST_NMS_TOP_N': 2000,
+           'RPN_PRE_NMS_TOP_N': 12000,
+           'SCALES': [600],
+           'SNAPSHOT_ITERS': 5000,
+           'SNAPSHOT_KEPT': 3,
+           'SNAPSHOT_PREFIX': 'res50_densecap',
+           'STEPSIZE': [100000],
+           'SUMMARY_INTERVAL': 10,
+           'USE_FLIPPED': True,
+           'USE_GT': False,
+           'WEIGHT_DECAY': 0.0001,
+           'WEIGHT_INITIALIZER': 'normal'},
+ 'TRAIN_GLOVE': False,
+ 'USE_GPU_NMS': True,
+ 'VOCAB_END_ID': 2,
+ 'VOCAB_SIZE': 10000,
+ 'VOCAB_START_ID': 1}
+data_path: /home/joe/git/visual_genome/1.2
+loading splits from /home/joe/git/densecap/info/densecap_splits.json
+Number of examples: 77398
+train gt roidb could be loaded from /home/joe/git/visual_genome/1.2_cache/train_gt_roidb
+Getting gt roidb and number of examples is:77398
+output will be saved to `/home/joe/git/densecap/output/dc_fixed/vg_1.2_train`
+TensorFlow summaries will be saved to `/home/joe/git/densecap/tensorboard/dc_fixed/vg_1.2_train/default`
+data_path: /home/joe/git/visual_genome/1.2
+loading splits from /home/joe/git/densecap/info/densecap_splits.json
+Number of examples: 5000
+val gt roidb could be loaded from /home/joe/git/visual_genome/1.2_cache/val_gt_roidb
+Getting gt roidb and number of examples is:100
+2017-12-19 00:00:10.352269: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+2017-12-19 00:00:10.541351: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:892] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2017-12-19 00:00:10.542194: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Found device 0 with properties: 
+name: GeForce GTX 1060 6GB major: 6 minor: 1 memoryClockRate(GHz): 1.7845
+pciBusID: 0000:01:00.0
+totalMemory: 5.92GiB freeMemory: 5.47GiB
+2017-12-19 00:00:10.542243: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1120] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1060 6GB, pci bus id: 0000:01:00.0, compute capability: 6.1)
+Solving...
+LIMIT_RAM version and load index from /home/joe/git/visual_genome/1.2_cache/train_gt_roidb/image_index.json
+LIMIT_RAM version and load index from /home/joe/git/visual_genome/1.2_cache/val_gt_roidb/image_index.json
+Fixing 3 blocks.
+Shape of embedding is (10003, 512)
+learning rate 0.001
+/home/joe/.tf_env2/local/lib/python2.7/site-packages/tensorflow/python/ops/gradients_impl.py:96: UserWarning: Converting sparse IndexedSlices to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  "Converting sparse IndexedSlices to a dense Tensor of unknown shape. "
+Restoring model snapshots from /home/joe/git/densecap/output/dc_fixed/vg_1.2_train/res50_densecap_iter_80000.ckpt

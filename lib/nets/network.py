@@ -372,6 +372,7 @@ class Network(object):
                                               trainable=is_training,
                                               dtype=tf.float32
                                               )
+            print("Shape of embedding is {}".format(self._embedding.shape))
             # independent decoder and encoder for word representation.
             # self._inverse_embed = tf.get_variable('inverse_embed',
                                                   # [cfg.EMBED_DIM, cfg.VOCAB_SIZE + 3],
