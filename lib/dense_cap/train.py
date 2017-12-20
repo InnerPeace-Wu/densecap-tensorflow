@@ -242,9 +242,29 @@ class SolverWrapper(object):
         # fully connected weights
         self.net.fix_variables(sess, self.pretrained_model)
         print('Fixed.')
-        last_snapshot_iter = 0
+        print("Ckpt path: {}".format(self.pretrained_model))
+        pkl_path = os.path.splitext(self.pretrained_model)[0] + '.pkl'
+        if os.path.exists(pkl_path):
+            print("Found pickle file, restore training process.")
+            with open(pkl_path, 'rb') as fid:
+                st0 = pickle.load(fid)
+                cur = pickle.load(fid)
+                perm = pickle.load(fid)
+                cur_val = pickle.load(fid)
+                perm_val = pickle.load(fid)
+                last_snapshot_iter = pickle.load(fid)
+            print("Last snapshot iters:{}".format(last_snapshot_iter))
+        else:
+            last_snapshot_iter = 0
+
         rate = cfg.TRAIN.LEARNING_RATE
         stepsizes = list(cfg.TRAIN.STEPSIZE)
+
+        for stepsize in cfg.TRAIN.STEPSIZE:
+            if last_snapshot_iter > stepsize:
+                rate *= cfg.TRAIN.GAMMA
+            else:
+                stepsizes.append(stepsize)
 
         return rate, last_snapshot_iter, stepsizes, np_paths, ss_paths
 

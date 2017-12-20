@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Preprocessing data in valohai computing platform.
+# This script may out of date. #2017.12.20
 set -e
 set -x
 

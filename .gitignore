@@ -5,6 +5,7 @@
 .idea/
 data/
 demo/
+experiments/
 
 tensorboard/
 output/

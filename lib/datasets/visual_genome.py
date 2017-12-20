@@ -24,6 +24,8 @@ from lib.limit_ram.utils import is_valid_limitRam
 
 
 DEBUG = False
+# TODO: It's time comsuming in limit-ram mode. Make sure to set False once you
+# finished preparing gt roidbs.
 USE_CACHE = True
 UNK_IDENTIFIER = '<unk>'
 
@@ -192,14 +194,16 @@ class visual_genome(imdb):
         for i in tqdm(xrange(len(self._image_index)), desc="%s" % self._image_set):
             idx = self._image_index[i]
             dictionary = self._load_vg_annotation(idx)
-            if is_valid_limitRam(pre_roidb(dictionary)):
-                if not isinstance(idx, six.string_types):
-                    idx = str(idx)
-                image_index.append(idx)
-                with open(roidb_cache_path + '/%s.pkl' % idx, 'wb') as f:
-                    cPickle.dump(dictionary, f, cPickle.HIGHEST_PROTOCOL)
-            else:
-                exclude_index.append(idx)
+            path_i = roidb_cache_path + '/%s.pkl' % idx
+            if not os.path.exists(path_i):
+                if is_valid_limitRam(pre_roidb(dictionary)):
+                    if not isinstance(idx, six.string_types):
+                        idx = str(idx)
+                    image_index.append(idx)
+                    with open(roidb_cache_path + '/%s.pkl' % idx, 'wb') as f:
+                        cPickle.dump(dictionary, f, cPickle.HIGHEST_PROTOCOL)
+                else:
+                    exclude_index.append(idx)
 
             # check for flipping only during training
             if cfg.TRAIN.USE_FLIPPED and self._image_set == 'train':

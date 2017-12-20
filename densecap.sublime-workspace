@@ -304,14 +304,6 @@
 			}
 		},
 		{
-			"file": "lib/pre_glove.py",
-			"settings":
-			{
-				"buffer_size": 2741,
-				"line_ending": "Unix"
-			}
-		},
-		{
 			"file": "lib/nets/resnet_v1.py",
 			"settings":
 			{
@@ -323,7 +315,7 @@
 			"file": "tests/dencap_oa_test.sh",
 			"settings":
 			{
-				"buffer_size": 3580,
+				"buffer_size": 3654,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -332,16 +324,7 @@
 			"file": "lib/nets/network.py",
 			"settings":
 			{
-				"buffer_size": 47545,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "README.md",
-			"settings":
-			{
-				"buffer_size": 3147,
+				"buffer_size": 47910,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -351,15 +334,6 @@
 			"settings":
 			{
 				"buffer_size": 5851,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "lib/datasets/visual_genome.py",
-			"settings":
-			{
-				"buffer_size": 12678,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -421,7 +395,7 @@
 			"file": "scripts/dense_cap_config.yml",
 			"settings":
 			{
-				"buffer_size": 786,
+				"buffer_size": 785,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -430,7 +404,7 @@
 			"file": "scripts/dense_cap_demo.sh",
 			"settings":
 			{
-				"buffer_size": 312,
+				"buffer_size": 317,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -527,11 +501,13 @@
 	],
 	"file_history":
 	[
+		"/home/joe/git/densecap/lib/datasets/visual_genome.py",
+		"/home/joe/git/densecap/lib/pre_glove.py",
+		"/home/joe/git/densecap/README.md",
 		"/home/joe/git/densecap/tests/logs/1_res50_vg_1.2_train_test.txt.2017-12-16_23-38-27",
 		"/home/joe/git/densecap/scripts/dense_cap_train.sh",
 		"/home/joe/git/densecap/scripts/dense_cap_demo.sh",
 		"/home/joe/git/densecap/tests/logs/1_res50_vg_1.2_train_test.txt.2017-12-12_23-28-12",
-		"/home/joe/git/densecap/lib/pre_glove.py",
 		"/home/joe/git/densecap/lib/download_data_vh.sh",
 		"/home/joe/git/densecap/tests/README.md",
 		"/home/joe/git/densecap/logs/1epoch_trained_model_test_log.txt.2017-12-11_21-31-03",
@@ -552,7 +528,6 @@
 		"/home/joe/git/densecap/lib/utils/visualization.py",
 		"/home/joe/git/densecap/tests/roidata_test.py",
 		"/home/joe/git/densecap/valohai.yaml",
-		"/home/joe/git/densecap/lib/datasets/visual_genome.py",
 		"/home/joe/git/densecap/lib/nets/resnet_v1.py",
 		"/home/joe/git/densecap/scripts/dense_cap_config.yml",
 		"/home/joe/git/densecap/lib/preprocess.py",
@@ -573,7 +548,6 @@
 		"/home/joe/.config/sublime-text-3/Packages/User/Anaconda.sublime-settings",
 		"/home/joe/git/densecap/densecap.sublime-project",
 		"/home/joe/git/densecap/lib/utils/blob.py",
-		"/home/joe/git/densecap/README.md",
 		"/home/joe/.config/sublime-text-3/Packages/Jedi - Python autocompletion/Default.sublime-keymap",
 		"/home/joe/.config/sublime-text-3/Packages/Anaconda/Default (Linux).sublime-keymap",
 		"/home/joe/.tf_env2/local/lib/python2.7/site-packages/tensorflow/python/ops/variables.py",
@@ -595,6 +569,7 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"region_features",
 			"fc8_im_context",
 			"region_features",
 			"gt_roidb_limit_ram",
@@ -712,6 +687,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"fc8_im_context",
 			"region_features",
 			"fc8_im_context",
 			"${TRAIN_IMDB}",
@@ -727,7 +703,7 @@
 			"cfg.DATA_DIR",
 			"%s"
 		],
-		"reverse": false,
+		"reverse": true,
 		"show_context": true,
 		"use_buffer2": true,
 		"whole_word": false,
@@ -736,7 +712,7 @@
 	"groups":
 	[
 		{
-			"selected": 4,
+			"selected": 2,
 			"sheets":
 			[
 				{
@@ -770,44 +746,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 16,
+					"stack_index": 12,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "lib/pre_glove.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 2741,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1349,
-								1354
-							]
-						],
-						"settings":
-						{
-							"git_gutter_is_enabled": true,
-							"is_init_dirty_state": false,
-							"origin_encoding": "ASCII",
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 756.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 17,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
 					"file": "lib/nets/resnet_v1.py",
 					"semi_transient": false,
 					"settings":
@@ -836,24 +779,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 15,
+					"stack_index": 11,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 2,
 					"file": "tests/dencap_oa_test.sh",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3580,
+						"buffer_size": 3654,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1370,
-								1370
+								1218,
+								1218
 							]
 						],
 						"settings":
@@ -866,27 +809,27 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 533.0,
+						"translation.y": 372.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 4,
+					"buffer": 3,
 					"file": "lib/nets/network.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 47545,
+						"buffer_size": 47910,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								17764,
-								17764
+								17255,
+								17255
 							]
 						],
 						"settings":
@@ -896,6 +839,10 @@
 								{
 									"characters": ".",
 									"selector": "source.python"
+								},
+								{
+									"characters": ".",
+									"selector": "source.python - string - constant.numeric"
 								},
 								{
 									"characters": ".",
@@ -911,45 +858,14 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 7600.0,
+						"translation.y": 7172.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 3,
 					"type": "text"
 				},
 				{
-					"buffer": 5,
-					"file": "README.md",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 3147,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								27,
-								27
-							]
-						],
-						"settings":
-						{
-							"git_gutter_is_enabled": true,
-							"is_init_dirty_state": false,
-							"origin_encoding": "ASCII",
-							"syntax": "Packages/MarkdownEditing/Markdown.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 14,
-					"type": "text"
-				},
-				{
-					"buffer": 6,
+					"buffer": 4,
 					"file": "lib/dense_cap/beam_search.py",
 					"semi_transient": false,
 					"settings":
@@ -994,61 +910,17 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 13,
-					"type": "text"
-				},
-				{
-					"buffer": 7,
-					"file": "lib/datasets/visual_genome.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 12678,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								6833,
-								6833
-							]
-						],
-						"settings":
-						{
-							"auto_complete_triggers":
-							[
-								{
-									"characters": ".",
-									"selector": "source.python"
-								},
-								{
-									"characters": ".",
-									"selector": "source.python - string - constant.numeric"
-								}
-							],
-							"git_gutter_is_enabled": true,
-							"is_init_dirty_state": false,
-							"origin_encoding": "ASCII",
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 1632.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 9,
+					"stack_index": 2,
 					"type": "text"
 				}
 			]
 		},
 		{
-			"selected": 5,
+			"selected": 6,
 			"sheets":
 			[
 				{
-					"buffer": 8,
+					"buffer": 5,
 					"file": "lib/dense_cap/caption_generator.py",
 					"semi_transient": false,
 					"settings":
@@ -1088,11 +960,11 @@
 						"translation.y": 546.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 11,
+					"stack_index": 9,
 					"type": "text"
 				},
 				{
-					"buffer": 9,
+					"buffer": 6,
 					"file": "tools/test_net.py",
 					"semi_transient": false,
 					"settings":
@@ -1125,7 +997,7 @@
 					"type": "text"
 				},
 				{
-					"buffer": 10,
+					"buffer": 7,
 					"file": "lib/dense_cap/test.py",
 					"semi_transient": false,
 					"settings":
@@ -1151,14 +1023,14 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 6483.0,
+						"translation.y": 225.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 7,
 					"type": "text"
 				},
 				{
-					"buffer": 11,
+					"buffer": 8,
 					"file": "tools/train_net.py",
 					"semi_transient": false,
 					"settings":
@@ -1226,11 +1098,11 @@
 						"translation.y": 624.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
+					"stack_index": 6,
 					"type": "text"
 				},
 				{
-					"buffer": 12,
+					"buffer": 9,
 					"file": "tools/demo.py",
 					"semi_transient": false,
 					"settings":
@@ -1259,11 +1131,11 @@
 						"translation.y": 1134.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
-					"buffer": 13,
+					"buffer": 10,
 					"file": "scripts/dense_cap_test.sh",
 					"semi_transient": false,
 					"settings":
@@ -1275,8 +1147,8 @@
 						"selection":
 						[
 							[
-								190,
-								190
+								656,
+								656
 							]
 						],
 						"settings":
@@ -1290,24 +1162,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 5,
 					"type": "text"
 				},
 				{
-					"buffer": 14,
+					"buffer": 11,
 					"file": "scripts/dense_cap_config.yml",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 786,
+						"buffer_size": 785,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								73,
-								73
+								239,
+								239
 							]
 						],
 						"settings":
@@ -1323,24 +1195,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 5,
+					"stack_index": 0,
 					"type": "text"
 				},
 				{
-					"buffer": 15,
+					"buffer": 12,
 					"file": "scripts/dense_cap_demo.sh",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 312,
+						"buffer_size": 317,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								312,
-								312
+								317,
+								317
 							]
 						],
 						"settings":
@@ -1354,11 +1226,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 10,
+					"stack_index": 13,
 					"type": "text"
 				},
 				{
-					"buffer": 16,
+					"buffer": 13,
 					"file": "lib/dense_cap/train.py",
 					"semi_transient": false,
 					"settings":
@@ -1402,11 +1274,11 @@
 						"translation.y": 204.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 12,
+					"stack_index": 14,
 					"type": "text"
 				},
 				{
-					"buffer": 17,
+					"buffer": 14,
 					"file": "lib/config.py",
 					"semi_transient": false,
 					"settings":
@@ -1418,8 +1290,8 @@
 						"selection":
 						[
 							[
-								11019,
-								11032
+								11138,
+								11155
 							]
 						],
 						"settings":
@@ -1472,10 +1344,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 8087.0,
+						"translation.y": 7940.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 6,
+					"stack_index": 10,
 					"type": "text"
 				}
 			]
@@ -1483,7 +1355,7 @@
 	],
 	"incremental_find":
 	{
-		"height": 29.0
+		"height": 43.0
 	},
 	"input":
 	{

@@ -353,17 +353,22 @@ class Network(object):
                 print("load pre-trained glove from {}, with shape: {}".format(glove_path,
                     glove.shape))
                 if not cfg.KEEP_AS_GLOVE_DIM:
+                    assert cfg.EMBED_DIM > cfg.GLOVE_DIM
                     g_mean = np.mean(glove, axis=1)
                     g_std = np.std(glove, axis=1)
                     expand_glove = np.random.normal(g_mean, g_std,
                          (cfg.EMBED_DIM, cfg.VOCAB_SIZE + 3))
                     expand_glove[:glove.shape[1], :] = glove.T
                     embed_initializer = tf.constant_initializer(expand_glove.T)
+                    print("Expanding glove vectors to be compatibale with embedding dimension.")
                 else:
                     embed_initializer = tf.constant_initializer(glove)
                     assert cfg.EMBED_DIM == cfg.GLOVE_DIM
+                    print("Keep the dimension of glove({}) as embedding dimension".format(
+                        cfg.GLOVE_DIM))
             else:
                 embed_initializer = initializer
+                print("Initialize embedding vectors with default initializer.")
 
             self._embedding = tf.get_variable("embedding",
                                               # 0,1,2 for pad sos eof respectively.

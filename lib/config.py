@@ -451,7 +451,7 @@ def get_output_tb_dir(imdb, weights_filename):
     A canonical path is built using the name from an imdb and a network
     (if not None).
     """
-    outdir = osp.abspath(osp.join(__C.ROOT_DIR, 'tensorboard', __C.EXP_DIR, imdb.name))
+    outdir = osp.abspath(osp.join(__C.ROOT_DIR, 'output', __C.EXP_DIR, 'tb', imdb.name))
     if weights_filename is None:
         weights_filename = 'default'
     outdir = osp.join(outdir, weights_filename)

@@ -12,14 +12,18 @@ import ijson
 import json
 import sys
 import os
+import argparse
 
-VG_VERSION = '1.2'
-VG_PATH = '/home/joe/git/VG_raw_data'
-# TODO: delete testing option
-# VG_REGION_PATH = '%s/%s/region_descriptions.json' % (VG_PATH, VG_VERSION)
-VG_REGION_PATH = '%s/%s/region_descriptions_test.json' % (VG_PATH, VG_VERSION)
-# REGION_JSON = '%s/%s/regions' % (VG_PATH, VG_VERSION)
-REGION_JSON = '%s/%s/regions_test' % (VG_PATH, VG_VERSION)
+parser = argparse.ArgumentParser(description='Preprocessing visual genome')
+parser.add_argument('--version', dest='version', type=float, default=1.2, help='the version of visual genome dataset.')
+parser.add_argument('--vg_path', dest='vg_path', type=str, default='/home/joe/git/VG_raw_data', help='directory keeping the raw dataset of visual genome')
+
+args = parser.parse_args()
+VG_VERSION = args.version
+VG_PATH = args.vg_path
+
+VG_REGION_PATH = '%s/%s/region_descriptions.json' % (VG_PATH, VG_VERSION)
+REGION_JSON = '%s/%s/regions' % (VG_PATH, VG_VERSION)
 
 
 def read_regions():
