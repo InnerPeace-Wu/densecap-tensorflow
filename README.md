@@ -9,9 +9,20 @@ Implementation of CVPR2017 paper: [Dense captioning with joint inference and vis
 4. Add `Beam Search` and `Length Normalization` in test mode.
 5. Add "Limit_RAM" mode when praparing training date since my computer only has RAM with 8G.
 
+<div align="center">
+    <img src="./logs/funny.png">
+</div>
+<div align="center">
+    <img src="./logs/densecap.png">
+</div>
+
 **Special thanks to [valohai](https://valohai.com/) for offering computing resource.**
 
 ## Note
+
+**Update 2017.12.31**  
+
+* After 500k iterations of training with configurations of original paper (except for the weights tying of wordvec and classifiers), it achieves **mAP 8.296**.
 
 **Update 2017.12.20**  
 
@@ -101,6 +112,24 @@ Parameters:
     - step 3: add context fusion, but fix convnets weights
     - step 4: finetune the whole model.
 
+## Demo
+
+Create a directory `data/demo`
+```sh
+$ mkdir $ROOT/data/demo
+```
+Then put the images to be tested in the directory and run
+```sh
+$ cd $ROOT
+$ bash scripts/dense_cap_demo.sh [ckpt_path] [vocab_path]
+```
+It will create html files in `$ROOT/demo`, just click it.
+Or you can use the web-based visualizer created by [karpathy](https://github.com/karpathy) by
+```sh
+$ cd $ROOT/vis
+$ python -m SimpleHTTPServer 8181
+```
+Then point your web brower to [http://localhost:8181/view_results.html](http://localhost:8181/view_results.html).
 
 ## TODO:
 
@@ -112,7 +141,7 @@ Parameters:
 - [x] get loc loss and caption loss
 - [x] overfit a mini-batch
 - [x] context fusion
-- [ ] add experiment result.
+- [x] add experiment result.
 
 ## References
 
@@ -120,3 +149,4 @@ Parameters:
 * The official repo of [densecap](https://github.com/linjieyangsc/densecap)
 * [Tying Word Vectors and Word Classifiers: A Loss Framework for Language Modeling](https://arxiv.org/abs/1611.01462)
 * Official tensorflow models - "im2text".
+* Adapted web-based visualizer from [jcjohnson](https://github.com/jcjohnson)'s [densecap repo](https://github.com/jcjohnson/densecap)

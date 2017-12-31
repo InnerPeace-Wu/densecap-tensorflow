@@ -27,6 +27,7 @@ import sys
 from lib.utils.bbox_utils import region_merge, get_bbox_coord
 from lib.pycocoevalcap.vg_eval import VgEvalCap
 from lib.dense_cap.beam_search import beam_search
+from lib.dense_cap.vis_whtml import vis_whtml
 
 COCO_EVAL_PATH = 'coco-caption/'
 sys.path.append(COCO_EVAL_PATH)
@@ -324,7 +325,7 @@ def sentence(vocab, vocab_indices):
     return sentence
 
 
-def test_im(sess, net, im_path, vocab, vis=True):
+def test_im(sess, net, im_path, vocab, pre_results, vis=True):
     im = cv2.imread(im_path)
     scores, boxes, captions = im_detect(sess, net, im, None, use_box_at=-1)
     pos_dets = np.hstack((boxes, scores[:, np.newaxis])) \
@@ -336,6 +337,9 @@ def test_im(sess, net, im_path, vocab, vis=True):
     pos_boxes = boxes[keep, :]
     if vis:
         vis_detections(im_path, im, pos_captions, pos_dets, save_path='./demo')
+        results = vis_whtml(im_path, im, pos_captions, pos_dets, pre_results)
+
+    return results
 
 
 def test_net(sess, net, imdb, vis=True, use_box_at=-1):

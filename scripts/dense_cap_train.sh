@@ -19,6 +19,7 @@ if [ -d '/home/joe' ]; then
     DATASET='visual_genome_1.2'
     NET='res50'
     ckpt_path="experiments/random_fixconv_i85k_171219/dc_fixed_1219/vg_1.2_train"
+    # ckpt_path="experiments/rd_fixconv_i165k_171221/dc_conv_fixed/vg_1.2_train"
     # ckpt_path='/home/joe/git/slim_models/res50.ckpt'
     data_dir='/home/joe/git/visual_genome'
 fi
@@ -86,7 +87,7 @@ time python ./tools/train_net.py \
     --cfg scripts/dense_cap_config.yml \
     --data_dir ${data_dir} \
     --net ${NET} \
-    --set EXP_DIR dc_tune_conv CONTEXT_FUSION False RESNET.FIXED_BLOCKS 1
+    --set EXP_DIR dc_tune_conv CONTEXT_FUSION False RESNET.FIXED_BLOCKS 1 TRAIN.LEARNING_RATE 0.00025
 fi
 
 # Step3: train with contex fusion
@@ -101,7 +102,7 @@ time python ./tools/train_net.py \
     --cfg scripts/dense_cap_config.yml \
     --data_dir ${data_dir} \
     --net ${NET} \
-    --set EXP_DIR dc_context CONTEXT_FUSION True RESNET.FIXED_BLOCKS 3
+    --set EXP_DIR dc_context CONTEXT_FUSION True RESNET.FIXED_BLOCKS 3 TRAIN.LEARNING_RATE 0.000125
 fi
 
 # Step4: finetune context fusion
@@ -116,5 +117,5 @@ time python ./tools/train_net.py \
     --cfg scripts/dense_cap_config.yml \
     --data_dir ${data_dir} \
     --net ${NET} \
-    --set EXP_DIR dc_tune_context CONTEXT_FUSION True RESNET.FIXED_BLOCKS 1
+    --set EXP_DIR dc_tune_context CONTEXT_FUSION True RESNET.FIXED_BLOCKS 1 TRAIN.LEARNING_RATE 0.0000625
 fi

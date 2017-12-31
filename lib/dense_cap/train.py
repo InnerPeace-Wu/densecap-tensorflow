@@ -14,8 +14,6 @@ from __future__ import print_function
 
 """Train a Dense Caption network."""
 
-# import sys
-# sys.path.append("..")
 
 from lib.config import cfg
 import lib.fast_rcnn.roidb as rdl_roidb
@@ -25,6 +23,7 @@ from six.moves import cPickle as pickle
 import numpy as np
 import os
 import cv2
+import pdb
 # from lib.utils.debug import softmax
 
 import glob
@@ -243,6 +242,7 @@ class SolverWrapper(object):
         self.net.fix_variables(sess, self.pretrained_model)
         print('Fixed.')
         print("Ckpt path: {}".format(self.pretrained_model))
+        # Added for continue traing when doing experiments.
         pkl_path = os.path.splitext(self.pretrained_model)[0] + '.pkl'
         if os.path.exists(pkl_path):
             print("Found pickle file, restore training process.")
@@ -257,12 +257,15 @@ class SolverWrapper(object):
         else:
             last_snapshot_iter = 0
 
+        last_snapshot_iter = 0
+
         rate = cfg.TRAIN.LEARNING_RATE
         stepsizes = list(cfg.TRAIN.STEPSIZE)
 
         for stepsize in cfg.TRAIN.STEPSIZE:
-            if last_snapshot_iter > stepsize:
+            if last_snapshot_iter >= stepsize:
                 rate *= cfg.TRAIN.GAMMA
+                print("Decrease learning rate by gamma {}, changed to rate: {}, stepsize:{}, iters:{}".format(cfg.TRAIN.GAMMA, rate, stepsize, last_snapshot_iter))
             else:
                 stepsizes.append(stepsize)
 
@@ -323,20 +326,29 @@ class SolverWrapper(object):
         else:
             rate, last_snapshot_iter, stepsizes, np_paths, ss_paths = self.restore(sess, str(sfiles[-1]), str(nfiles[-1]))
         timer = Timer()
-        iter = last_snapshot_iter + 1
+        iters = last_snapshot_iter + 1
         last_summary_time = time.time()
         # Make sure the lists are not empty
         stepsizes.append(max_iters)
         stepsizes.reverse()
         next_stepsize = stepsizes.pop()
-        while iter < max_iters + 1:
+
+        # In case the lr is restored from ckpt.
+        last_lr = sess.run(lr)
+        if rate != last_lr:
+            sess.run(tf.assign(lr, rate))
+
+        while iters < max_iters + 1:
             # Learning rate
             if cfg.TRAIN.LR_DIY_DECAY:
-                if iter == next_stepsize + 1:
+                # if iters == next_stepsize + 1:
+                if iters % cfg.TRAIN.STEPSIZE[0] == 1 and iters > 1:
                     # Add snapshot here before reducing the learning rate
-                    self.snapshot(sess, iter)
+                    # self.snapshot(sess, iters)
                     rate *= cfg.TRAIN.GAMMA
                     sess.run(tf.assign(lr, rate))
+                    print("Decrease learning rate to {}, with iters: {}, stepsize: {}, \
+                        gamma: {}".format(rate, iters, cfg.TRAIN.STEPSIZE[0], cfg.TRAIN.GAMMA))
                     next_stepsize = stepsizes.pop()
 
             timer.tic()
@@ -344,16 +356,16 @@ class SolverWrapper(object):
             blobs = self.data_layer.forward()
 
             now = time.time()
-            if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
+            if iters == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
                 # Compute the graph with summary
                 rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, \
                     caption_loss, total_loss, summary = \
                     self.net.train_step_with_summary(sess, blobs, train_op)
-                self.writer.add_summary(summary, float(iter))
+                self.writer.add_summary(summary, float(iters))
                 # Also check the summary on the validation set
                 blobs_val = self.data_layer_val.forward()
                 summary_val = self.net.get_summary(sess, blobs_val)
-                self.valwriter.add_summary(summary_val, float(iter))
+                self.valwriter.add_summary(summary_val, float(iters))
                 last_summary_time = now
             else:
                 # Compute the graph without summary
@@ -363,21 +375,21 @@ class SolverWrapper(object):
             timer.toc()
 
             # Display training information
-            if iter % (cfg.TRAIN.DISPLAY) == 0:
+            if iters % (cfg.TRAIN.DISPLAY) == 0:
                 if cfg.TRAIN.LR_DIY_DECAY:
                     learning_rate = lr
                 else:
                     learning_rate = sess.run(lr)
-                print('iter: %d / %d, total loss: %.6f\n >>> caption loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
+                print('iters: %d / %d, total loss: %.6f\n >>> caption loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
                       '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' %
-                      (iter, max_iters, total_loss, caption_loss, rpn_loss_cls,
+                      (iters, max_iters, total_loss, caption_loss, rpn_loss_cls,
                        rpn_loss_box, loss_cls, loss_box, learning_rate.eval()))
-                print('speed: {:.3f}s / iter'.format(timer.average_time))
+                print('speed: {:.3f}s / iters'.format(timer.average_time))
 
             # Snapshotting
-            if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
-                last_snapshot_iter = iter
-                ss_path, np_path = self.snapshot(sess, iter)
+            if iters % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+                last_snapshot_iter = iters
+                ss_path, np_path = self.snapshot(sess, iters)
                 np_paths.append(np_path)
                 ss_paths.append(ss_path)
 
@@ -385,10 +397,10 @@ class SolverWrapper(object):
                 if len(np_paths) > cfg.TRAIN.SNAPSHOT_KEPT:
                     self.remove_snapshot(np_paths, ss_paths)
 
-            iter += 1
+            iters += 1
 
-        if last_snapshot_iter != iter - 1:
-            self.snapshot(sess, iter - 1)
+        if last_snapshot_iter != iters - 1:
+            self.snapshot(sess, iters - 1)
 
         self.writer.close()
         self.valwriter.close()

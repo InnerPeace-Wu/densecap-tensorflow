@@ -18,14 +18,12 @@ from __future__ import print_function
 """Train a dense caption model"""
 
 import _init_paths
-# import os
 from os.path import join as pjoin
 import sys
-# sys.path.append("..")
-# import time
 import six
 import glob
 import argparse
+import json
 import numpy as np
 import tensorflow as tf
 
@@ -122,6 +120,11 @@ if __name__ == '__main__':
         # for n in tf.get_default_graph().as_graph_def().node:
         #     if 'input_feed' in n.name:
         #         print(n.name)
-
+        # for html visualization
+        pre_results = {}
+        save_path = './vis/data'
         for path in im_paths:
-            test_im(sess, net, path, vocab)
+            pre_results = test_im(sess, net, path, vocab, pre_results)
+
+        with open(save_path + '/results.json', 'w') as f:
+            json.dump(pre_results, f)
