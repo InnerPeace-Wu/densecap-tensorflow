@@ -10,10 +10,8 @@ Implementation of CVPR2017 paper: [Dense captioning with joint inference and vis
 5. Add "Limit_RAM" mode when praparing training date since my computer only has RAM with 8G.
 
 <div align="center">
-    <img src="./logs/funny.png">
-</div>
-<div align="center">
-    <img src="./logs/densecap.png">
+    <img src="./logs/funny.png" width="40%" height="40%">
+    <img src="./logs/densecap.png" width="40%" height="40%">
 </div>
 
 **Special thanks to [valohai](https://valohai.com/) for offering computing resource.**
