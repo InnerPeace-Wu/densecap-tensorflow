@@ -116,11 +116,26 @@ Create a directory `data/demo`
 ```sh
 $ mkdir $ROOT/data/demo
 ```
-Then put the images to be tested in the directory and run
+Then put the images to be tested in the directory. 
+
+**Download pretrained model (iters 500k)** by [Google Drive](https://drive.google.com/file/d/1yoJGXXpeSpQbU-6WpLsMXFLIka7xpTAy/view?usp=sharing) 
+or [Jbox](https://jbox.sjtu.edu.cn/l/j5EeUN). Then create a "output" 
+directory under `$ROOT`
+```sh
+$ mkdir $ROOT/output
+```
+Extract the downloaded "ckpt.zip" to directory `$ROOT/output`.
+And run
 ```sh
 $ cd $ROOT
+$ bash scripts/dense_cap_demo.sh ./output/ckpt ./output/ckpt/vocabulary.txt
+```
+or run
+```sh
 $ bash scripts/dense_cap_demo.sh [ckpt_path] [vocab_path]
 ```
+for your customized checkpoint directory.
+
 It will create html files in `$ROOT/demo`, just click it.
 Or you can use the web-based visualizer created by [karpathy](https://github.com/karpathy) by
 ```sh
