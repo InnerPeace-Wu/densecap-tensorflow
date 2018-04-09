@@ -58,7 +58,7 @@ sudo apt-get install openjdk-8-jre
 * Download `images` Part1 and Part2, extract `all (two parts)` to directory `VG/images`
 * Download `image meta data`, extract to directory `VG/1.2` or `VG/1.0` according to the version you download.
 * Download `region descriptions`, extract to directory `VG/1.2` or `VG/1.0` accordingly.
-* For the following process, we will refer directory `VG` as `raw_data_path`
+* For the following process, we will refer **the absolute path** of directory `VG` as `raw_data_path`, e.g. `/home/user/git/VG`.
 
 ### Unlimit RAM
 
